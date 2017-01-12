@@ -13,14 +13,14 @@ program Phononic1D
     implicit none
 
     integer :: iX, iY, ig, l, k, iter, INFO
-    integer :: nX, nY, ngX, ngY, ng, NE
+    integer :: nX, nY, ngX, ngY, ng, NE, NE2
     integer :: LWORK=8
-    integer, parameter :: DD=kind(0d0) , NE2=NE*2
+    integer, parameter :: DD=kind(0d0)
 
     real(DD) :: dkX, dkY, kX, kY, kXmin, kYmin, kXmax, kYmax
     real(DD) :: gX1, gY1, gX2, gY2, gr, X, Y
-    real(DD) :: rho11, rho12, rho22, P, Q, R,
-    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor, Kg, mug, rhog
+    real(DD) :: rho11, rho12, rho22, P, Q, R
+    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
     real(DD) :: rhog, Kg, mug, PP     !C 基盤の密度，体積弾性率，せん断弾性率
     real(DD) :: cst, csl, cf, eta
     real(DD) :: lX, lY, pi, pi2, RWORK(32)
@@ -49,6 +49,7 @@ program Phononic1D
 
     pi=4.0d0*atan(1.0d0)
     pi2=2.0d0*pi
+    NE2=NE*2
 !C===
 
 !C==================================================================
@@ -105,12 +106,11 @@ program Phononic1D
 !C +---------------------------------------------+
 !C===
   !C--y=0とし，x方向の波数を増やす．
-  open(10,file='unitXY_ZGGEV.dat')
+  open(10,file='1D_ZGGEV.dat')
     do iter = 0, NE2
      kX = dkX*dble(iter)
      kY = 0.0d0
-     do l=1,ng
-       do k=1,ng
+
   !C--多孔質体の中ではBiotのモデル
         if ( iter .le. NE ) then
           A(1,1) = P * (kX**2) + mub*(kY**2)
@@ -129,24 +129,7 @@ program Phononic1D
           A(4,2) = Q*(kY**2)
           A(4,3) = 0
           A(4,4) = R*(kY**2)
-
-          A(1,1+4*l) = P * (kX**2) + mub*(kY**2)
-          A(1,2) = mub*(kX*kY)
-          A(1,3) = Q*(kX**2)
-          A(1,4) = 0
-          A(2,1) = mub*(kX*kY)
-          A(2,2) = P*(kY**2) + mub*(kX**2)
-          A(2,3) = 0
-          A(2,4) = Q*(kY**2)
-          A(3,1) = Q*(kX**2)
-          A(3,2) = 0
-          A(3,3) = R*(kX**2)
-          A(3,4) = 0
-          A(4,1) = 0
-          A(4,2) = Q*(kY**2)
-          A(4,3) = 0
-          A(4,4) = R*(kY**2)
-
+          
           B(1,1) = rho11
           B(1,2) = 0
           B(1,3) = rho12
