@@ -12,10 +12,10 @@
 program Phononic1D
   implicit none
     integer :: iX, ig, l, k, iter, INFO
-    integer :: nX, ngX, ng, NE, NE2
-    integer :: LWORK=8
+    integer :: NE, NE2
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=7, ngX=2*nX+1, ngx8=ngx*8
+    integer, parameter :: nX=7
+    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*2
 
     real(DD) :: dkX, kX, kXmin, kXmax
     real(DD) :: gX1(ngX), gX2(ngX)
@@ -23,7 +23,7 @@ program Phononic1D
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
     real(DD) :: rhog, Kg, mug, Pg     !C 基盤の密度，体積弾性率，せん断弾性率
     real(DD) :: cst, csl, cf, eta
-    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8)
+    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8), coeff
     real(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
 
     complex(DD),dimension(1:ngX, 1:ngX) :: A, B, VL, VR
@@ -79,7 +79,6 @@ program Phononic1D
 
   !C--{点の数} = 2*{正方向の要素数}+{原点}
   !C--{点の総数} = {X方向の点の数}*{Y方向の点の数}
-    ngX = 2*nX +1
 
   !C--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
     iter=0
@@ -141,7 +140,6 @@ program Phononic1D
         B(ngX+l,ngX+k) = rho22(l,k)
       end do
      end do
-    end do
 
      call ZGGEV('N', 'V', ngX, A, ngX, B, ngX, ALPHA, BETA, VL, ngX, VR, ngX,&
       & WORK, LWORK, RWORK, INFO)
@@ -166,11 +164,11 @@ function coeff(gX, ap, ag, lx)
 
     real(DD) :: coeff, ap, ag
     real(DD) :: kX, gX
-    real(DD) :: lX, pi, pi2
-    real(DD), parameter :: lX2=2*lX
+    real(DD) :: lX, lX2, pi, pi2
 
     complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
 
+    lX2=lX*2
   !C--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
   !C--      = {ap-ag}/2 : G=0
     if (gX .ne. 0) then
