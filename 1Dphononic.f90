@@ -153,7 +153,7 @@ program Phononic1D
      call ZGGEV('N', 'V', 2, A, 2, B, 2, ALPHA, BETA, VL, 2, VR, 2,&
       & WORK, LWORK, RWORK, INFO)
      eigen = SQRT(ALPHA/BETA)
-     write(10,'(25(e24.10e3,2x),i5)') kX, eigen ,ALPHA,BETA
+     write(10,'(25(e24.10e3,2x),i5)') kX, eigen
     end do
 
 end program Phononic1D
