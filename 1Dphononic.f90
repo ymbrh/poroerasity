@@ -10,25 +10,27 @@
 !C   与えた波数に対応した固有値，固有ベクトルを出力
 !C
 program Phononic1D
-    implicit none
-
-    integer :: iX, iY, ig, l, k, iter, INFO
-    integer :: nX, nY, ngX, ngY, ng, NE, NE2
+  implicit none
+    integer :: iX, ig, l, k, iter, INFO
+    integer :: nX, ngX, ng, NE, NE2
     integer :: LWORK=8
     integer, parameter :: DD=kind(0d0)
+    integer, parameter :: nX=7, ngX=2*nX+1, ngx8=ngx*8
 
-    real(DD) :: dkX, dkY, kX, kY, kXmin, kYmin, kXmax, kYmax
-    real(DD) :: gX1, gY1, gX2, gY2, gr, X, Y
-    real(DD) :: rho11, rho12, rho22, P, Q, R
+    real(DD) :: dkX, kX, kXmin, kXmax
+    real(DD) :: gX1(ngX), gX2(ngX)
+    real(DD) :: rho11p, rho12p, rho22p, Pp, Qp, Rp
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
-    real(DD) :: rhog, Kg, mug, PP     !C 基盤の密度，体積弾性率，せん断弾性率
+    real(DD) :: rhog, Kg, mug, Pg     !C 基盤の密度，体積弾性率，せん断弾性率
     real(DD) :: cst, csl, cf, eta
-    real(DD) :: lX, lY, pi, pi2, RWORK(32)
+    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8)
+    real(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
 
-    complex(DD) :: A(4,4), B(4,4), VL(4,4), VR(4,4)
-    complex(DD) :: eigen(4), ALPHA(4), BETA(4), WORK(500)
-    complex(DD), parameter :: ai=dcmplX(0.0d0,1.0d0)
+    complex(DD),dimension(1:ngX, 1:ngX) :: A, B, VL, VR
+    complex(DD) :: eigen(ngX), ALPHA(ngX), BETA(ngX), WORK(500)
+    complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
 
+    external coeff
 
 !C==================================================================
 !C +-------+
@@ -36,7 +38,6 @@ program Phononic1D
 !C +-------+
 !C===
     open  (11, file='input.dat', status='unknown')
-      read (11,*) nX, nY              !C 要素数
       read (11,*) NE                  !C 刻み数
       read (11,*) lX, lY              !C 格子定数[m]
       read (11,*) rhoS, rhoF          !C 密度(固体，流体)[kg m-3]
@@ -66,37 +67,47 @@ program Phononic1D
 !C===
 
 !C==================================================================
-!C +-------------+
-!C | 刻み幅を設定 |
-!C +-------------+
+!C +--------------------------------+
+!C | 逆格子ベクトルG1(G),G2(G")の作成 |
+!C +--------------------------------+
 !C===
+  !C--{第一ブリルアンゾーンの境界} = {逆格子ベクトルの辺垂直二等分線}
   !C--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
     kXmax = pi/lX
     dkX = (kXmax - kXmin) / NE2
-    kYmin = 0.0d0
-    kYmax = pi/lY
-    dkY = (kYmax - kYmin) / NE2
 
-!C===
+  !C--{点の数} = 2*{正方向の要素数}+{原点}
+  !C--{点の総数} = {X方向の点の数}*{Y方向の点の数}
+    ngX = 2*nX +1
+
+  !C--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
+    iter=0
+    do iX = -nX, nX
+     iter = iter+1
+     gX1(iter) = (pi2/lX)*dble(iX)
+     gX2(iter) = (pi2/lX)*dble(iX)
+    end do
 
 !C==================================================================
-!C +----------------------------------------------+
-!C | バルクのときの物理パラメータを定める  　　　　　 |
-!C | あとでフォノニック結晶にする時は，この部分を元に |
-!C | フーリエ級数展開するサブルーチンを追加          |
-!C +----------------------------------------------+
+!C +--------------------------------------------+
+!C | 多孔質体中の物理パラメータを定める  　　　　　 |
+!C +--------------------------------------------+
 !C===
-  !C--y=0とし，x方向の波数を増やしたときの行を作成．
-    rho11 = (1-f)*rhoS + (tor-1)*f*rhoF
-    rho12 = -(tor-1)*f*rhoF
-    rho22 = tor*f*rhoF
+  !C--多孔質体中では
+    rho11p = (1-f)*rhoS + (tor-1)*f*rhoF
+    rho12p = -(tor-1)*f*rhoF
+    rho22p = tor*f*rhoF
+    Pp = Ks*( (1-f)/(1-f-Kb/Ks) + (f*Kb/Kf) )/(1-f-Kb/Ks + f*Ks/Kf) + 4*mub/3
+    Qp = f*Ks*(1-f-Kb/Ks)/(1-f-Kb/Ks + f*Ks/Kf)
+    Rp = (f**2 *Ks)/(1-f-Kb/Ks + f*Ks/Kf)
 
-    P = Ks*( (1-f)/(1-f-Kb/Ks) + (f*Kb/Kf) )/(1-f-Kb/Ks + f*Ks/Kf) + 4*mub/3
-    Q = f*Ks*(1-f-Kb/Ks)/(1-f-Kb/Ks + f*Ks/Kf)
-    R = (f**2 *Ks)/(1-f-Kb/Ks + f*Ks/Kf)
-  !C--弾性定数だけおいとく
-    PP = (Kg) + (4*mug/3)
+  !C--基盤中では
+  !C--{Pg} = {Kg} + {4/3 mug}
+  !C--{Qg} = {Rg} = 0
+  !C--{rho11g} = {rhog}
+  !C--{rho12g} = {rho22g} = 0
+    Pg = (Kg) + (4*mug/3)
 
 !C==================================================================
 !C +---------------------------------------------+
@@ -109,88 +120,32 @@ program Phononic1D
   open(10,file='1D_ZGGEV.dat')
     do iter = 0, NE2
      kX = dkX*dble(iter)
-     kY = 0.0d0
 
-  !C--多孔質体の中ではBiotのモデル
-        if ( iter .le. NE ) then
-          A(1,1) = P * (kX**2) + mub*(kY**2)
-          A(1,2) = mub*(kX*kY)
-          A(1,3) = Q*(kX**2)
-          A(1,4) = 0
-          A(2,1) = mub*(kX*kY)
-          A(2,2) = P*(kY**2) + mub*(kX**2)
-          A(2,3) = 0
-          A(2,4) = Q*(kY**2)
-          A(3,1) = Q*(kX**2)
-          A(3,2) = 0
-          A(3,3) = R*(kX**2)
-          A(3,4) = 0
-          A(4,1) = 0
-          A(4,2) = Q*(kY**2)
-          A(4,3) = 0
-          A(4,4) = R*(kY**2)
-          
-          B(1,1) = rho11
-          B(1,2) = 0
-          B(1,3) = rho12
-          B(1,4) = 0
-          B(2,1) = 0
-          B(2,2) = rho11
-          B(2,3) = 0
-          B(2,4) = rho12
-          B(3,1) = rho12
-          B(3,2) = 0
-          B(3,3) = rho22
-          B(3,4) = 0
-          B(4,1) = 0
-          B(4,2) = rho12
-          B(4,3) = 0
-          B(4,4) = rho22
+     do l=1,ngX
+      do k=1,ngX
+        P(l,k) = coeff(gX2(l)-gX1(k), Pp, Pg, lx)
+        Q(l,k) = coeff(gX2(l)-gX1(k), Qp, 0, lx)
+        R(l,k) = coeff(gX2(l)-gX1(k), Rp, 0, lx)
+        rho11(l,k) = coeff(gX2(l)-gX1(k), rho11p, rhog, lx)
+        rho12(l,k) = coeff(gX2(l)-gX1(k), rho12p, 0, lx)
+        rho22(l,k) = coeff(gX2(l)-gX1(k), rho22p, 0, lx)
 
-  !C--基盤中では
-  !C--{P} = {Kg} + {4/3 mug}
-  !C--{Q} = {R} = 0
-  !C--{rho11} = {rhog}
-  !C--{rho12} = {rho22} = 0
-        else
-          A(1,1) = PP * (kX**2) + mug*(kY**2)
-          A(1,2) = mug*(kX*kY)
-          A(1,3) = 0
-          A(1,4) = 0
-          A(2,1) = mug*(kX*kY)
-          A(2,2) = PP*(kY**2) + mug*(kX**2)
-          A(2,3) = 0
-          A(2,4) = 0
-          A(3,1) = 0
-          A(3,2) = 0
-          A(3,3) = 0
-          A(3,4) = 0
-          A(4,1) = 0
-          A(4,2) = 0
-          A(4,3) = 0
-          A(4,4) = 0
+        A(l,k) = P(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(l,ngX+k) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(ngX+l,k) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(ngX+l,ngX+k) = R(l,k)*(kX+gX1(k))*(kX+gX2(l))
 
-          B(1,1) = rhog
-          B(1,2) = 0
-          B(1,3) = 0
-          B(1,4) = 0
-          B(2,1) = 0
-          B(2,2) = rhog
-          B(2,3) = 0
-          B(2,4) = 0
-          B(3,1) = 0
-          B(3,2) = 0
-          B(3,3) = 0
-          B(3,4) = 0
-          B(4,1) = 0
-          B(4,2) = 0
-          B(4,3) = 0
-          B(4,4) = 0
-        end if
+        B(l,k) = rho11(l,k)
+        B(l,ngX+k) = rho12(l,k)
+        B(ngX+l,k) = rho12(l,k)
+        B(ngX+l,ngX+k) = rho22(l,k)
+      end do
+     end do
+    end do
 
-     call ZGGEV('N', 'V', 4, A, 4, B, 4, ALPHA, BETA, VL, 4, VR, 4,&
+     call ZGGEV('N', 'V', ngX, A, ngX, B, ngX, ALPHA, BETA, VL, ngX, VR, ngX,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = ALPHA/BETA
+     eigen = SQRT(ALPHA/BETA)
      write(10,'(25(e24.10e3,2x),i5)') kX, eigen
     end do
 
@@ -199,3 +154,29 @@ end program Phononic1D
 !C********************************************************************
 !C********************************************************************
 !C********************************************************************
+!C==================================================================
+!C +-------------------------------+
+!C | フーリエ係数の作成　　　　　　　 |
+!C +-------------------------------+
+!C===
+function coeff(gX, ap, ag, lx)
+  implicit none
+    integer :: k
+    integer,parameter::DD=kind(0d0)
+
+    real(DD) :: coeff, ap, ag
+    real(DD) :: kX, gX
+    real(DD) :: lX, pi, pi2
+    real(DD), parameter :: lX2=2*lX
+
+    complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
+
+  !C--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
+  !C--      = {ap-ag}/2 : G=0
+    if (gX .ne. 0) then
+      coeff = -(ap-ag) * (exp(-COM*gX / lX2) - 1) / (gX * lX)
+    else
+      coeff = (ap-ag)/2
+    endif
+  return
+end function coeff
