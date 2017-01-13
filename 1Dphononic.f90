@@ -15,7 +15,7 @@ program Phononic1D
     integer :: NE, NE2
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=7
-    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*2
+    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=2*2
 
     real(DD) :: dkX, kX, kXmin, kXmax
     real(DD) :: gX1(ngX), gX2(ngX)
@@ -23,11 +23,12 @@ program Phononic1D
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
     real(DD) :: rhog, Kg, mug, Pg     !C 基盤の密度，体積弾性率，せん断弾性率
     real(DD) :: cst, csl, cf, eta
-    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8), coeff
-    real(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
+    real(DD) :: lX, lY, pi, pi2, RWORK(16)
 
+    complex :: coeff
+    complex(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
     complex(DD),dimension(1:ngX, 1:ngX) :: A, B, VL, VR
-    complex(DD) :: eigen(ngX), ALPHA(ngX), BETA(ngX), WORK(500)
+    complex(DD) :: eigen(2), ALPHA(2), BETA(2), WORK(500)
     complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
 
     external coeff
@@ -120,6 +121,14 @@ program Phononic1D
     do iter = 0, NE2
      kX = dkX*dble(iter)
 
+     A(1,1)=0
+     A(1,2)=0
+     A(1,3)=0
+     A(1,4)=0
+     B(1,1)=0
+     B(1,2)=0
+     B(1,3)=0
+     B(1,4)=0
      do l=1,ngX
       do k=1,ngX
         P(l,k) = coeff(gX2(l)-gX1(k), Pp, Pg, lx)
@@ -129,22 +138,22 @@ program Phononic1D
         rho12(l,k) = coeff(gX2(l)-gX1(k), rho12p, 0, lx)
         rho22(l,k) = coeff(gX2(l)-gX1(k), rho22p, 0, lx)
 
-        A(l,k) = P(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(l,ngX+k) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(ngX+l,k) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(ngX+l,ngX+k) = R(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(1,1) = A(1,1) + P(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(1,2) = A(1,2) + Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(2,1) = A(2,1) + Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
+        A(2,2) = A(2,2) + R(l,k)*(kX+gX1(k))*(kX+gX2(l))
 
-        B(l,k) = rho11(l,k)
-        B(l,ngX+k) = rho12(l,k)
-        B(ngX+l,k) = rho12(l,k)
-        B(ngX+l,ngX+k) = rho22(l,k)
+        B(1,1) = B(1,1) + rho11(l,k)
+        B(1,2) = B(1,2) + rho12(l,k)
+        B(2,1) = B(2,1) + rho12(l,k)
+        B(2,2) = B(2,2) + rho22(l,k)
       end do
      end do
 
-     call ZGGEV('N', 'V', ngX, A, ngX, B, ngX, ALPHA, BETA, VL, ngX, VR, ngX,&
+     call ZGGEV('N', 'V', 2, A, 2, B, 2, ALPHA, BETA, VL, 2, VR, 2,&
       & WORK, LWORK, RWORK, INFO)
      eigen = SQRT(ALPHA/BETA)
-     write(10,'(25(e24.10e3,2x),i5)') kX, eigen
+     write(10,'(25(e24.10e3,2x),i5)') kX, eigen ,ALPHA,BETA
     end do
 
 end program Phononic1D
@@ -162,10 +171,11 @@ function coeff(gX, ap, ag, lx)
     integer :: k
     integer,parameter::DD=kind(0d0)
 
-    real(DD) :: coeff, ap, ag
+    real(DD) :: ap, ag
     real(DD) :: kX, gX
     real(DD) :: lX, lX2, pi, pi2
 
+    complex :: coeff
     complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
 
     lX2=lX*2
