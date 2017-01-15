@@ -14,22 +14,22 @@ program Phononic1D
     integer :: iX, ig, l, k, iter, INFO
     integer :: NE, NE2
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=7
-    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=2*2
+    integer, parameter :: nX=15
+    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
     real(DD) :: dkX, kX, kXmin, kXmax
-    real(DD) :: gX1(ngX), gX2(ngX)
+    real(DD) :: gX(ngX)
     real(DD) :: rho11p, rho12p, rho22p, Pp, Qp, Rp
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
     real(DD) :: rhog, Kg, mug, Pg     !C 基盤の密度，体積弾性率，せん断弾性率
-    real(DD) :: cst, csl, cf, eta
-    real(DD) :: lX, lY, pi, pi2, RWORK(16)
+    real(DD) :: cst, csl, cf, eta, filling, bunbo
+    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8*2)
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
-    complex(DD),dimension(1:ngX, 1:ngX) :: A, B, VL, VR
-    complex(DD) :: eigen(2), ALPHA(2), BETA(2), WORK(500)
-    complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
+    complex(DD),dimension(1:ngX*2, 1:ngX*2) :: A, B, VL, VR
+    complex(DD) :: eigen(ngX*2), ALPHA(ngX*2), BETA(ngX*2), WORK(LWORK)
+    complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
 
     external coeff
 
@@ -47,9 +47,12 @@ program Phononic1D
       read (11,*) Kb, mub             !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) eta                 !C 流体の粘性係数[Pa s]
       read (11,*) rhog, Kg, mug       !C 基盤の密度[kg m-3]，体積弾性率，せん断弾性率[Pa]
+      read (11,*) filling     ! 充填率　
+                              ! dA=filling*lX       :A層の厚さ
+                              ! dB=(1-filling)*lX   :B層の厚さ
     close (11)
 
-    pi=4.0d0*atan(1.0d0)
+    pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
     NE2=NE*2
 !C===
@@ -63,8 +66,11 @@ program Phononic1D
   !C--{cst}=({mus}/{rhoS})**(1/2)
   !C--{cf}=({Kf}/{rhoF})**(1/2)
     mus = cst**2 * rhoS
-    Ks = csl**2 * rhoS - (4*mus/3)
-    Kf = cf**2 * rhoF
+    Ks  = csl**2 * rhoS - (4*mus/3)
+    Kf  =  cf**2 * rhoF
+!    write(*,*) 'mus=',mus
+!    write(*,*) 'Ks =',Ks
+!    write(*,*) 'Kf =',Kf
 !C===
 
 !C==================================================================
@@ -85,8 +91,7 @@ program Phononic1D
     iter=0
     do iX = -nX, nX
      iter = iter+1
-     gX1(iter) = (pi2/lX)*dble(iX)
-     gX2(iter) = (pi2/lX)*dble(iX)
+     gX(iter) = (pi2/lX)*dble(iX)
     end do
 
 !C==================================================================
@@ -95,12 +100,16 @@ program Phononic1D
 !C +--------------------------------------------+
 !C===
   !C--多孔質体中では
-    rho11p = (1-f)*rhoS + (tor-1)*f*rhoF
-    rho12p = -(tor-1)*f*rhoF
+    rho11p = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
+    rho12p = -(tor-1.0d0)*f*rhoF
     rho22p = tor*f*rhoF
-    Pp = Ks*( (1-f)/(1-f-Kb/Ks) + (f*Kb/Kf) )/(1-f-Kb/Ks + f*Ks/Kf) + 4*mub/3
-    Qp = f*Ks*(1-f-Kb/Ks)/(1-f-Kb/Ks + f*Ks/Kf)
-    Rp = (f**2 *Ks)/(1-f-Kb/Ks + f*Ks/Kf)
+    bunbo=1.0d0-f-Kb/Ks + f*Ks/Kf
+    Pp = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
+    Qp = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
+    Rp = (f**2 *Ks)/bunbo
+!    write(*,*) 'Pp =',Pp
+!    write(*,*) 'Qp =',Qp
+!    write(*,*) 'Rp =',Rp
 
   !C--基盤中では
   !C--{Pg} = {Kg} + {4/3 mug}
@@ -108,6 +117,7 @@ program Phononic1D
   !C--{rho11g} = {rhog}
   !C--{rho12g} = {rho22g} = 0
     Pg = (Kg) + (4*mug/3)
+!    write(*,*) 'Pg =',Pg
 
 !C==================================================================
 !C +---------------------------------------------+
@@ -118,34 +128,37 @@ program Phononic1D
 !C===
   !C--y=0とし，x方向の波数を増やす．
   open(10,file='1D_ZGGEV.dat')
+  open(20,file='1D_ZGGEV2.dat')
+    do l=1,ngX
+    do k=1,ngX
+       P(l,k)     = coeff(gX(l)-gX(k), Pp,       Pg, lx, filling)
+       Q(l,k)     = coeff(gX(l)-gX(k), Qp,        0, lx, filling)
+       R(l,k)     = coeff(gX(l)-gX(k), Rp,        0, lx, filling)
+       rho11(l,k) = coeff(gX(l)-gX(k), rho11p, rhog, lx, filling)
+       rho12(l,k) = coeff(gX(l)-gX(k), rho12p,    0, lx, filling)
+       rho22(l,k) = coeff(gX(l)-gX(k), rho22p,    0, lx, filling)
+    end do
+    end do
     do iter = 0, NE2
      kX = dkX*dble(iter)
-
      do l=1,ngX
-      do k=1,ngX
-        P(l,k) = coeff(gX2(l)-gX1(k), Pp, Pg, lx)
-        Q(l,k) = coeff(gX2(l)-gX1(k), Qp, 0, lx)
-        R(l,k) = coeff(gX2(l)-gX1(k), Rp, 0, lx)
-        rho11(l,k) = coeff(gX2(l)-gX1(k), rho11p, rhog, lx)
-        rho12(l,k) = coeff(gX2(l)-gX1(k), rho12p, 0, lx)
-        rho22(l,k) = coeff(gX2(l)-gX1(k), rho22p, 0, lx)
-
-        A(l,k) = P(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(l,k+ngX) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(l+ngX,k) = Q(l,k)*(kX+gX1(k))*(kX+gX2(l))
-        A(l+ngX,k+ngX) = R(l,k)*(kX+gX1(k))*(kX+gX2(l))
-
-        B(l,k) = rho11(l,k)
-        B(l,k+ngX) = rho12(l,k)
-        B(l+ngX,k) = rho12(l,k)
+     do k=1,ngX
+        A(l    ,k    ) = P(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l    ,k+ngX) = Q(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX,k    ) = Q(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX,k+ngX) = R(l,k)*(kX+gX(k))*(kX+gX(l))
+        B(l    ,k    ) = rho11(l,k)
+        B(l    ,k+ngX) = rho12(l,k)
+        B(l+ngX,k    ) = rho12(l,k)
         B(l+ngX,k+ngX) = rho22(l,k)
-      end do
+     end do
      end do
 
-     call ZGGEV('N', 'V', 2, A, 2, B, 2, ALPHA, BETA, VL, 2, VR, 2,&
+     call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = SQRT(ALPHA/BETA)
-     write(10,'(25(e24.10e3,2x),i5)') kX, eigen
+     eigen = SQRT(ALPHA/BETA)/pi2
+     write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
+     write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
     end do
 
 end program Phononic1D
@@ -158,25 +171,28 @@ end program Phononic1D
 !C | フーリエ係数の作成　　　　　　　 |
 !C +-------------------------------+
 !C===
-function coeff(gX, ap, ag, lx)
+function coeff(gX, ap, ag, lx, f)
   implicit none
     integer :: k
     integer,parameter::DD=kind(0d0)
 
     real(DD) :: ap, ag
-    real(DD) :: kX, gX
-    real(DD) :: lX, lX2, pi, pi2
+    real(DD) :: gX
+    real(DD) :: lX, pi, pi2, f, dA, ph
 
     complex :: coeff
-    complex(DD), parameter :: COM=dcmplX(0.0d0,1.0d0)
+    complex(DD), parameter :: ai=dcmplx(0.0d0,1.0d0)
 
-    lX2=lX*2
+    dA=f*lX    ! A層の厚さ、lXは周期長、fは充填率
+    ph=0.5d0*gX*dA
+
   !C--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
   !C--      = {ap-ag}/2 : G=0
-    if (gX .ne. 0) then
-      coeff = -(ap-ag) * (exp(-COM*gX / lX2) - 1) / (gX * lX)
+    if (gX .ne. 0.0d0) then
+!      coeff = -(ap-ag)* f * (exp(-ai*gX*lX) - 1.0d0) / (gX * lX)
+      coeff = (ap-ag)*f*exp(-ai*ph)*sin(ph)/ph
     else
-      coeff = (ap-ag)/2
+      coeff = f*ap+(1.0d0-f)*ag
     endif
   return
 end function coeff
