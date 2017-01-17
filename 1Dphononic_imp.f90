@@ -12,9 +12,9 @@
 program Phononic1D
   implicit none
     integer :: iX, ig, l, k, iter, INFO
-    integer :: NE, NE2
+    integer :: NE
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=15
+    integer, parameter :: nX=15, NE=100 !C 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
     real(DD) :: dkX, kX, kXmin, kXmax
@@ -38,11 +38,10 @@ program Phononic1D
 !C | INIT. |
 !C +-------+
 !C===
-    open  (11, file='input.dat', status='unknown')
-      read (11,*) NE                  !C 刻み数
+    open  (11, file='input1D.dat', status='unknown')
       read (11,*) lX, lY              !C 格子定数[m]
       read (11,*) rhoS, rhoF          !C 密度(固体，流体)[kg m-3]
-      read (11,*) f, tor              !C 孔隙率，迷路度
+      read (11,*) f                   !C 孔隙率，迷路度
       read (11,*) csl, cst, cf        !C 伝搬速度（固体縦波，固体横波，流体）[m s-1]
       read (11,*) Kb, mub             !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) eta                 !C 流体の粘性係数[Pa s]
@@ -54,7 +53,8 @@ program Phononic1D
 
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
-    NE2=NE*2
+    tor=f**(-2/3)                     !C 迷路度
+
 !C===
 
 !C==================================================================
@@ -68,9 +68,9 @@ program Phononic1D
     mus = cst**2 * rhoS
     Ks  = csl**2 * rhoS - (4*mus/3)
     Kf  =  cf**2 * rhoF
-!    write(*,*) 'mus=',mus
-!    write(*,*) 'Ks =',Ks
-!    write(*,*) 'Kf =',Kf
+    write(*,*) 'mus=',mus
+    write(*,*) 'Ks =',Ks
+    write(*,*) 'Kf =',Kf
 !C===
 
 !C==================================================================
@@ -82,7 +82,7 @@ program Phononic1D
   !C--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
     kXmax = pi/lX
-    dkX = (kXmax - kXmin) / NE2
+    dkX = (kXmax - kXmin) / NE
 
   !C--{点の数} = 2*{正方向の要素数}+{原点}
   !C--{点の総数} = {X方向の点の数}*{Y方向の点の数}
@@ -107,9 +107,9 @@ program Phononic1D
     Pp = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
     Qp = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
     Rp = (f**2 *Ks)/bunbo
-!    write(*,*) 'Pp =',Pp
-!    write(*,*) 'Qp =',Qp
-!    write(*,*) 'Rp =',Rp
+    write(*,*) 'Pp =',Pp
+    write(*,*) 'Qp =',Qp
+    write(*,*) 'Rp =',Rp
 
   !C--基盤中では
   !C--{Pg} = {Kg} + {4/3 mug}
@@ -117,7 +117,7 @@ program Phononic1D
   !C--{rho11g} = {rhog}
   !C--{rho12g} = {rho22g} = 0
     Pg = (Kg) + (4*mug/3)
-!    write(*,*) 'Pg =',Pg
+    write(*,*) 'Pg =',Pg
 
 !C==================================================================
 !C +---------------------------------------------+
@@ -139,7 +139,7 @@ program Phononic1D
        rho22(l,k) = coeff(gX(l)-gX(k), rho22p,    0, lx, filling)
     end do
     end do
-    do iter = 0, NE2
+    do iter = 0, NE
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
