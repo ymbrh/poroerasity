@@ -12,7 +12,6 @@
 program Phononic1D
   implicit none
     integer :: iX, ig, l, k, iter, INFO
-    integer :: NE
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=15, NE=100 !C 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
@@ -53,7 +52,7 @@ program Phononic1D
 
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
-    tor=f**(-2/3)                     !C 迷路度
+    tor=f**(-2.0d0/3.0d0)                     !C 迷路度
 
 !C===
 
@@ -71,6 +70,7 @@ program Phononic1D
     write(*,*) 'mus=',mus
     write(*,*) 'Ks =',Ks
     write(*,*) 'Kf =',Kf
+    write(*,*) 'tor =',tor
 !C===
 
 !C==================================================================
@@ -107,9 +107,9 @@ program Phononic1D
     Pp = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
     Qp = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
     Rp = (f**2 *Ks)/bunbo
-    write(*,*) 'Pp =',Pp
-    write(*,*) 'Qp =',Qp
-    write(*,*) 'Rp =',Rp
+!    write(*,*) 'Pp =',Pp
+!    write(*,*) 'Qp =',Qp
+!    write(*,*) 'Rp =',Rp
 
   !C--基盤中では
   !C--{Pg} = {Kg} + {4/3 mug}
@@ -117,7 +117,7 @@ program Phononic1D
   !C--{rho11g} = {rhog}
   !C--{rho12g} = {rho22g} = 0
     Pg = (Kg) + (4*mug/3)
-    write(*,*) 'Pg =',Pg
+!    write(*,*) 'Pg =',Pg
 
 !C==================================================================
 !C +---------------------------------------------+
