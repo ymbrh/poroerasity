@@ -67,10 +67,10 @@ program Phononic1D
     mus = cst**2 * rhoS
     Ks  = csl**2 * rhoS - (4*mus/3)
     Kf  =  cf**2 * rhoF
-    write(*,*) 'mus=',mus
-    write(*,*) 'Ks =',Ks
-    write(*,*) 'Kf =',Kf
-    write(*,*) 'tor =',tor
+!    write(*,*) 'mus=',mus
+!    write(*,*) 'Ks =',Ks
+!    write(*,*) 'Kf =',Kf
+!    write(*,*) 'tor =',tor
 !C===
 
 !C==================================================================
@@ -139,7 +139,7 @@ program Phononic1D
        rho22(l,k) = coeff(gX(l)-gX(k), rho22p,    0, lx, filling)
     end do
     end do
-    do iter = 0, NE
+  do iter = -NE, NE
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
@@ -159,7 +159,7 @@ program Phononic1D
      eigen = SQRT(ALPHA/BETA)/pi2
      write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
      write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
-    end do
+  end do
 
 end program Phononic1D
 !C********************************************************************
