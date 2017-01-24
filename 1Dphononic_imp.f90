@@ -160,9 +160,8 @@ program Phononic1D
 
      call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
-     call DEIGSRT(A,VL,ngX*2,ngX*2)
-     call DEIGSRT(B,VR,ngX*2,ngX*2)
      eigen = SQRT(ALPHA/BETA)/pi2
+     call DEIGSRT(eigen,VR,ngX*2,ngX*2)
      write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
      write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
   end do
@@ -243,6 +242,6 @@ do i=1,n-1
       v(j,k) = p
     enddo
   end if
-    continue
+enddo
 return
 end
