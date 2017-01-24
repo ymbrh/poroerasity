@@ -30,7 +30,7 @@ program Phononic1D
     complex(DD) :: eigen(ngX*2), ALPHA(ngX*2), BETA(ngX*2), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
 
-    external coeff
+    external coeff, DEIGSRT
 
 !C==================================================================
 !C +-------+
@@ -160,6 +160,8 @@ program Phononic1D
 
      call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
+     call DEIGSRT(A,VL,ngX*2,ngX*2)
+     call DEIGSRT(B,VR,ngX*2,ngX*2)
      eigen = SQRT(ALPHA/BETA)/pi2
      write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
      write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
@@ -200,3 +202,47 @@ function coeff(gX, ap, ag, lx, f)
     endif
   return
 end function coeff
+
+!C***********************************************************************
+!C.! ROUTINE: EIGSRT
+!C.! PURPOSE: This routine given the eigenvalues and eigenvectors
+!C.!          sorts the eigenvalues into ascending order, and rearranges the
+!C.!          columns of square matrix correspondingly.  The method is straight
+!C.!          insertion.
+!C.!
+!C.!          see pg. 348 w/ explanation pgs.335-376
+!C.!          Numerical Recipes: The Art of Scientific Programming
+!C.!          (FORTRAN version), 1st edition
+!C.!          W.H. Press, B.P. Flannery, S.A. Teukolsky, W.T. Vetterling
+!C.!          Cambridge Univ. Press., 1986
+!C.!
+!C***********************************************************************
+SUBROUTINE DEIGSRT(D,V,N,NP)
+implicit none
+integer*4 :: n, np
+real*8    :: d(np),v(np,np)
+
+integer*4 :: i,j,k
+real*8    :: p
+
+do i=1,n-1
+  k = i
+  p = d(i)
+  do j=i+1,n
+    if(d(j).ge.p) then
+      k = j
+      p = d(j)
+    end if
+  enddo
+  if( k .ne. i ) then
+    d(k) = d(i)
+    d(i) = p
+    do j = 1,n
+      p = v(j,i)
+      v(j,i) = v(j,k)
+      v(j,k) = p
+    enddo
+  end if
+    continue
+return
+end
