@@ -41,7 +41,7 @@ program Phononic1D
     open  (11, file='input1D.dat', status='unknown')
       read (11,*) lX, lY              !C 格子定数[m]
       read (11,*) rhoS, rhoF          !C 密度(固体，流体)[kg m-3]
-      read (11,*) f, tor              !C 孔隙率，迷路度
+      read (11,*) f                   !C 孔隙率，迷路度
       read (11,*) csl, cst, cf        !C 伝搬速度（固体縦波，固体横波，流体）[m s-1]
       read (11,*) Kb, mub             !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) eta                 !C 流体の粘性係数[Pa s]
@@ -54,7 +54,7 @@ program Phononic1D
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
     ! if ( tor .eq. 0.0d0) then
-    ! tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+     tor=f**(-2.0d0/3.0d0)                     !C 迷路度
     ! end if
 
 
