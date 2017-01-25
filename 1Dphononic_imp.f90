@@ -71,10 +71,6 @@ program Phononic1D
     mus = cst**2 * rhoS
     Ks  = csl**2 * rhoS - (4*mus/3)
     Kf  =  cf**2 * rhoF
-  !  write(*,*) 'mus=',mus
-  !  write(*,*) 'Ks =',Ks
-  !  write(*,*) 'Kf =',Kf
-  !  write(*,*) 'tor =',tor
 !C===
 
 !C==================================================================
@@ -111,9 +107,6 @@ program Phononic1D
     Pp = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
     Qp = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
     Rp = (f**2 *Ks)/bunbo
-!    write(*,*) 'Pp =',Pp
-!    write(*,*) 'Qp =',Qp
-!    write(*,*) 'Rp =',Rp
 
   !C--基盤中では
   !C--{Pg} = {Kg} + {4/3 mug}
@@ -121,7 +114,25 @@ program Phononic1D
   !C--{rho11g} = {rhog}
   !C--{rho12g} = {rho22g} = 0
     Pg = (Kg) + (4.0d0*mug/3.0d0)
-!    write(*,*) 'Pg =',Pg
+    open (25, file='elastic.dat')
+    write(25,*) 'Ks =', Ks
+    write(25,*) 'mus =', mus
+    write(25,*) 'Kf =', Kf
+    write(25,*) 'Kb =', Kb
+    write(25,*) 'mub =', mub
+    write(25,*) 'Kg =', Kg
+    write(25,*) 'mug =', mug
+    write(25,*) 'Pp =',Pp
+    write(25,*) 'Qp =',Qp
+    write(25,*) 'Rp =',Rp
+    write(25,*) 'Pg =',Pg
+    write(25,*) 'rho11p =', rho11p
+    write(25,*) 'rho12p =', rho12p
+    write(25,*) 'rho22p =', rho22p
+    write(25,*) 'tor =',tor
+    write(25,*) 'filling =',filling
+    close(25)
+
 
 !C==================================================================
 !C +---------------------------------------------+
@@ -162,8 +173,8 @@ program Phononic1D
       & WORK, LWORK, RWORK, INFO)
      eigen = SQRT(ALPHA/BETA)/pi2
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
-     write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
-     write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
+   write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
+   write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
   end do
 
 end program Phononic1D
