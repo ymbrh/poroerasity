@@ -144,6 +144,7 @@ program Phononic1D
   !C--y=0とし，x方向の波数を増やす．
   open(10,file='1D_ZGGEV.dat')
   open(20,file='1D_ZGGEV2.dat')
+  open(15,file='1D_eigen.dat')
     do l=1,ngX
     do k=1,ngX
        P(l,k)     = coeff(gX(l)-gX(k), Pp,       Pg, lx, filling)
@@ -171,7 +172,14 @@ program Phononic1D
 
      call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = SQRT(ALPHA/BETA)/pi2
+     eigen = sqrt(ALPHA/BETA)/pi2
+    !  do l = 1, ngX*2
+    !
+    !  if ( imag(eigen(l)) .lt. 0.0d0 ) then
+    !    eigen(l)= -eigen(l)
+    !  end if
+    ! end do
+     write(15,'(1500(e24.10e3,2x),i5)') kX, eigen
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
@@ -230,16 +238,16 @@ end function coeff
 SUBROUTINE DEIGSRT(D,V,N,NP)
 implicit none
 integer*4 :: n, np
-real*8    :: d(np),v(np,np)
+complex*16 :: d(np),v(np,np)
 
 integer*4 :: i,j,k
-real*8    :: p
+complex*16 :: p
 
 do i=1,n-1
   k = i
   p = d(i)
   do j=i+1,n
-    if(d(j).ge.p) then
+    if(dble(d(j)).ge.dble(p)) then
       k = j
       p = d(j)
     end if
