@@ -1,5 +1,5 @@
 !C
-!C   program for 1D phononic ctystals with poroerasticity
+!C   program for 1D phononic ctystals with poroelasticity
 !C   solved bY PME(plain Expansion Method)
 !C
 !C   格子点を作成
@@ -11,6 +11,8 @@
 !C
 program Phononic1D
   implicit none
+    character :: material
+
     integer :: iX, ig, l, k, iter, INFO
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=15, NE=100 !C 要素数，刻み数
@@ -18,14 +20,14 @@ program Phononic1D
 
     real(DD) :: dkX, kX, kXmin, kXmax
     real(DD) :: gX(ngX)
-    real(DD) :: rho11p, rho12p, rho22p, Pp, Qp, Rp
-    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mus, mub, f, tor
-    real(DD) :: rhog, Kg, mug, Pg     !C 基盤の密度，体積弾性率，せん断弾性率
-    real(DD) :: cst, csl, cf, eta, filling, bunbo
+    real(DD),dimension(2) :: rho11, rho12, rho22, P, Q, R, iter
+    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
+    real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
+    real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
     real(DD) :: lX, lY, pi, pi2, RWORK(ngx8*2)
 
     complex :: coeff
-    complex(DD),dimension(1:ngX, 1:ngX) :: P, Q, R, rho11, rho12, rho22
+    complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
     complex(DD),dimension(1:ngX*2, 1:ngX*2) :: A, B, VL, VR
     complex(DD) :: eigen(ngX*2), ALPHA(ngX*2), BETA(ngX*2), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
@@ -37,40 +39,26 @@ program Phononic1D
 !C | INIT. |
 !C +-------+
 !C===
-  ! tor=0.0d0
     open  (11, file='input1D.dat', status='unknown')
+    !C--フォノニック結晶の構造
       read (11,*) lX, lY              !C 格子定数[m]
-      read (11,*) rhoS, rhoF          !C 密度(固体，流体)[kg m-3]
-      read (11,*) f                   !C 孔隙率，迷路度
-      read (11,*) csl, cst, cf        !C 伝搬速度（固体縦波，固体横波，流体）[m s-1]
-      read (11,*) Kb, mub             !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
-      read (11,*) eta                 !C 流体の粘性係数[Pa s]
-      read (11,*) rhog, Kg, mug       !C 基盤の密度[kg m-3]，体積弾性率，せん断弾性率[Pa]
-      read (11,*) filling     ! 充填率　
-                              ! dA=filling*lX       :A層の厚さ
-                              ! dB=(1-filling)*lX   :B層の厚さ
+      read (11,*) filling             ! 充填率　
+                                      ! dA=filling*lX       :A層の厚さ
+                                      ! dB=(1-filling)*lX   :B層の厚さ
+    !C--多孔質体(poroelastic)の物質パラメタ
+      read (11,*) rhoSp, rhoFp        !C 多孔質体での密度(固体，流体)[kg m-3]
+      read (11,*) Ksp, Kfp            !C 体積弾性率（固体，流体）[Pa]
+      read (11,*) Kbp, mubp           !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
+      read (11,*) fp                  !C 孔隙率，迷路度
+    !C--基盤(Host)の物質パラメタ
+      read (11,*) rhoSh, rhoFh        !C 多孔質体での密度(固体，流体)[kg m-3]
+      read (11,*) Ksh, Kfh            !C 体積弾性率（固体，流体）[Pa]
+      read (11,*) Kbh, mubh           !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
+      read (11,*) fh                  !C 孔隙率，迷路度
     close (11)
 
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
-    ! if ( tor .eq. 0.0d0) then
-     tor=f**(-2.0d0/3.0d0)                     !C 迷路度
-    ! end if
-
-
-!C===
-
-!C==================================================================
-!C +---------------------------------+
-!C | 弾性定数を，実験で得た速度から計算 |
-!C +---------------------------------+
-!C===
-  !C--{csl}=[({Ks}+4{mus}/3)/{rhoS}]**(1/2)
-  !C--{cst}=({mus}/{rhoS})**(1/2)
-  !C--{cf}=({Kf}/{rhoF})**(1/2)
-    mus = cst**2 * rhoS
-    Ks  = csl**2 * rhoS - (4*mus/3)
-    Kf  =  cf**2 * rhoF
 !C===
 
 !C==================================================================
@@ -84,54 +72,68 @@ program Phononic1D
     kXmax = pi/lX
     dkX = (kXmax - kXmin) / NE
 
-  !C--{点の数} = 2*{正方向の要素数}+{原点}
-  !C--{点の総数} = {X方向の点の数}*{Y方向の点の数}
-
-  !C--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
+  !C--{逆格子点の数} = 2*{正方向の要素数}+{原点}
+  !C--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
     iter=0
     do iX = -nX, nX
      iter = iter+1
      gX(iter) = (pi2/lX)*dble(iX)
     end do
+!C===
 
 !C==================================================================
 !C +--------------------------------------------+
 !C | 多孔質体中の物理パラメータを定める  　　　　　 |
 !C +--------------------------------------------+
 !C===
+  open (25, file='elastic.dat')
+  do iter = 0,1
   !C--多孔質体中では
-    rho11p = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
-    rho12p = -(tor-1.0d0)*f*rhoF
-    rho22p = tor*f*rhoF
+    if ( iter .eq. 0 ) then
+        f = fp
+        rhoS = rhoSp
+        rhoF = rhoFp
+        Ks = Ksp
+        Kf = Kfp
+        Kb = Kbp
+        mub = mubp
+        material = poroelastic
+      else
+        f = fh
+        rhoS = rhoSh
+        rhoF = rhoFh
+        Ks = Ksh
+        Kf = Kfh
+        Kb = Kbh
+        mub = mubh
+        material = host
+    end if
+    tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+    rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
+    rho12(iter) = -(tor-1.0d0)*f*rhoF
+    rho22(iter) = tor*f*rhoF
     bunbo=1.0d0-f-Kb/Ks + f*Ks/Kf
-    Pp = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
-    Qp = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
-    Rp = (f**2 *Ks)/bunbo
-
-  !C--基盤中では
-  !C--{Pg} = {Kg} + {4/3 mug}
-  !C--{Qg} = {Rg} = 0
-  !C--{rho11g} = {rhog}
-  !C--{rho12g} = {rho22g} = 0
-    Pg = (Kg) + (4.0d0*mug/3.0d0)
-    open (25, file='elastic.dat')
+    P(iter) = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
+    Q(iter) = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
+    R(iter) = (f**2 *Ks)/bunbo
+    write(25,*) material
+    write(25,*) 'rhoS =', rhoS
+    write(25,*) 'rhoF =', rhoF
     write(25,*) 'Ks =', Ks
-    write(25,*) 'mus =', mus
     write(25,*) 'Kf =', Kf
     write(25,*) 'Kb =', Kb
     write(25,*) 'mub =', mub
-    write(25,*) 'Kg =', Kg
-    write(25,*) 'mug =', mug
-    write(25,*) 'Pp =',Pp
-    write(25,*) 'Qp =',Qp
-    write(25,*) 'Rp =',Rp
-    write(25,*) 'Pg =',Pg
-    write(25,*) 'rho11p =', rho11p
-    write(25,*) 'rho12p =', rho12p
-    write(25,*) 'rho22p =', rho22p
+    write(25,*) 'f =', f
     write(25,*) 'tor =',tor
+    write(25,*) 'P =',P
+    write(25,*) 'Q =',Q
+    write(25,*) 'R =',R
+    write(25,*) 'rho11 =', rho11
+    write(25,*) 'rho12 =', rho12
+    write(25,*) 'rho22 =', rho22
     write(25,*) 'filling =',filling
-    close(25)
+  end do
+  close(25)
 
 
 !C==================================================================
@@ -144,15 +146,14 @@ program Phononic1D
   !C--y=0とし，x方向の波数を増やす．
   open(10,file='1D_ZGGEV.dat')
   open(20,file='1D_ZGGEV2.dat')
-  open(15,file='1D_eigen.dat')
     do l=1,ngX
     do k=1,ngX
-       P(l,k)     = coeff(gX(l)-gX(k), Pp,       Pg, lx, filling)
-       Q(l,k)     = coeff(gX(l)-gX(k), Qp,        0, lx, filling)
-       R(l,k)     = coeff(gX(l)-gX(k), Rp,        0, lx, filling)
-       rho11(l,k) = coeff(gX(l)-gX(k), rho11p, rhog, lx, filling)
-       rho12(l,k) = coeff(gX(l)-gX(k), rho12p,    0, lx, filling)
-       rho22(l,k) = coeff(gX(l)-gX(k), rho22p,    0, lx, filling)
+       P(l,k)     = coeff(gX(l)-gX(k), P(0),     P(1), lx, filling)
+       Q(l,k)     = coeff(gX(l)-gX(k), Q(0),     Q(1), lx, filling)
+       R(l,k)     = coeff(gX(l)-gX(k), R(0),     R(1), lx, filling)
+       rho11(l,k) = coeff(gX(l)-gX(k), rho11(0), rho11(1), lx, filling)
+       rho12(l,k) = coeff(gX(l)-gX(k), rho12(0), rho12(1), lx, filling)
+       rho22(l,k) = coeff(gX(l)-gX(k), rho22(0), rho22(1), lx, filling)
     end do
     end do
   do iter = -NE, NE
@@ -173,13 +174,6 @@ program Phononic1D
      call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
      eigen = sqrt(ALPHA/BETA)/pi2
-    !  do l = 1, ngX*2
-    !
-    !  if ( imag(eigen(l)) .lt. 0.0d0 ) then
-    !    eigen(l)= -eigen(l)
-    !  end if
-    ! end do
-     write(15,'(1500(e24.10e3,2x),i5)') kX, eigen
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
@@ -223,7 +217,7 @@ end function coeff
 
 !C***********************************************************************
 !C.! ROUTINE: EIGSRT
-!C.! PURPOSE: This routine given the eigenvalues and eigenvectors
+!C.! PURPOSE: This routine given the eigenvalues and eigenvectorps
 !C.!          sorts the eigenvalues into ascending order, and rearranges the
 !C.!          columns of square matrix correspondingly.  The method is straight
 !C.!          insertion.
