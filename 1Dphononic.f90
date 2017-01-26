@@ -20,11 +20,11 @@ program Phononic1D
 
     real(DD) :: dkX, kX, kXmin, kXmax
     real(DD) :: gX(ngX)
-    real(DD),dimension(2) :: rho11, rho12, rho22, P, Q, R, iter
+    real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
-    real(DD) :: lX, lY, pi, pi2, RWORK(ngx8*2)
+    real(DD) :: lX, pi, pi2, RWORK(ngx8*2)
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
@@ -34,6 +34,7 @@ program Phononic1D
 
     external coeff, DEIGSRT
 
+
 !C==================================================================
 !C +-------+
 !C | INIT. |
@@ -41,7 +42,7 @@ program Phononic1D
 !C===
     open  (11, file='input1D.dat', status='unknown')
     !C--フォノニック結晶の構造
-      read (11,*) lX, lY              !C 格子定数[m]
+      read (11,*) lX                  !C 格子定数[m]
       read (11,*) filling             ! 充填率　
                                       ! dA=filling*lX       :A層の厚さ
                                       ! dB=(1-filling)*lX   :B層の厚さ
@@ -59,6 +60,7 @@ program Phononic1D
 
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
+
 !C===
 
 !C==================================================================
@@ -86,29 +88,34 @@ program Phononic1D
 !C | 多孔質体中の物理パラメータを定める  　　　　　 |
 !C +--------------------------------------------+
 !C===
-  open (25, file='elastic.dat')
-  do iter = 0,1
+  open (25, file="elastic.dat")
+  do iter = 1,2
   !C--多孔質体中では
-    if ( iter .eq. 0 ) then
-        f = fp
-        rhoS = rhoSp
-        rhoF = rhoFp
-        Ks = Ksp
-        Kf = Kfp
-        Kb = Kbp
-        mub = mubp
-        material = poroelastic
+    if ( iter .eq. 1 ) then
+      f = fp
+      rhoS = rhoSp
+      rhoF = rhoFp
+      Ks = Ksp
+      Kf = Kfp
+      Kb = Kbp
+      mub = mubp
+      material = "poroelastic"
+      tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+    else
+      f = fh
+      rhoS = rhoSh
+      rhoF = rhoFh
+      Ks = Ksh
+      Kf = Kfh
+      Kb = Kbh
+      mub = mubh
+      material = "host"
+      if (f .eq. 0d0) then
+        tor=1
       else
-        f = fh
-        rhoS = rhoSh
-        rhoF = rhoFh
-        Ks = Ksh
-        Kf = Kfh
-        Kb = Kbh
-        mub = mubh
-        material = host
+        tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+      end if
     end if
-    tor=f**(-2.0d0/3.0d0)                     !C 迷路度
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
     rho12(iter) = -(tor-1.0d0)*f*rhoF
     rho22(iter) = tor*f*rhoF
@@ -125,14 +132,13 @@ program Phononic1D
     write(25,*) 'mub =', mub
     write(25,*) 'f =', f
     write(25,*) 'tor =',tor
+  end do
     write(25,*) 'P =',P
     write(25,*) 'Q =',Q
     write(25,*) 'R =',R
     write(25,*) 'rho11 =', rho11
     write(25,*) 'rho12 =', rho12
     write(25,*) 'rho22 =', rho22
-    write(25,*) 'filling =',filling
-  end do
   close(25)
 
 
@@ -144,30 +150,30 @@ program Phononic1D
 !C +---------------------------------------------+
 !C===
   !C--y=0とし，x方向の波数を増やす．
-  open(10,file='1D_ZGGEV.dat')
-  open(20,file='1D_ZGGEV2.dat')
+  open(10,file='ZGGEV1D.dat')
+  open(20,file='ZGGEV1D2.dat')
     do l=1,ngX
     do k=1,ngX
-       P(l,k)     = coeff(gX(l)-gX(k), P(0),     P(1), lx, filling)
-       Q(l,k)     = coeff(gX(l)-gX(k), Q(0),     Q(1), lx, filling)
-       R(l,k)     = coeff(gX(l)-gX(k), R(0),     R(1), lx, filling)
-       rho11(l,k) = coeff(gX(l)-gX(k), rho11(0), rho11(1), lx, filling)
-       rho12(l,k) = coeff(gX(l)-gX(k), rho12(0), rho12(1), lx, filling)
-       rho22(l,k) = coeff(gX(l)-gX(k), rho22(0), rho22(1), lx, filling)
+       Pg(l,k)     = coeff(gX(l)-gX(k), P(1),     P(2), lx, filling)
+       Qg(l,k)     = coeff(gX(l)-gX(k), Q(1),     Q(2), lx, filling)
+       Rg(l,k)     = coeff(gX(l)-gX(k), R(1),     R(2), lx, filling)
+       rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lx, filling)
+       rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lx, filling)
+       rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
     end do
     end do
   do iter = -NE, NE
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
-        A(l    ,k    ) = P(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l    ,k+ngX) = Q(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l+ngX,k    ) = Q(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l+ngX,k+ngX) = R(l,k)*(kX+gX(k))*(kX+gX(l))
-        B(l    ,k    ) = rho11(l,k)
-        B(l    ,k+ngX) = rho12(l,k)
-        B(l+ngX,k    ) = rho12(l,k)
-        B(l+ngX,k+ngX) = rho22(l,k)
+        A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l    ,k+ngX) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX,k+ngX) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
+        B(l    ,k    ) = rho11g(l,k)
+        B(l    ,k+ngX) = rho12g(l,k)
+        B(l+ngX,k    ) = rho12g(l,k)
+        B(l+ngX,k+ngX) = rho22g(l,k)
      end do
      end do
 
@@ -178,7 +184,7 @@ program Phononic1D
    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
   end do
-
+!C===
 end program Phononic1D
 !C********************************************************************
 !C********************************************************************
@@ -205,7 +211,7 @@ function coeff(gX, ap, ag, lx, f)
     ph=0.5d0*gX*dA
 
   !C--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
-  !C--      = {ap-ag}/2 : G=0
+  !C--      = f*{ap}+(1-f)*{ag} : G=0
     if (gX .ne. 0.0d0) then
 !      coeff = -(ap-ag)* f * (exp(-ai*gX*lX) - 1.0d0) / (gX * lX)
       coeff = (ap-ag)*f*exp(-ai*ph)*sin(ph)/ph
