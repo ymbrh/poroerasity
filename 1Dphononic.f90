@@ -1,21 +1,22 @@
-!C
-!C   program for 1D phononic ctystals with poroelasticity
-!C   solved bY PME(plain Expansion Method)
-!C
-!C   格子点を作成
-!C   逆格子空間を作成
-!C   入射波とパラメタを展開
-!C   展開した係数から行列を作成
-!C   LAPACKで固有値，固有ベクトルを出す
-!C   与えた波数に対応した固有値，固有ベクトルを出力
-!C
+! +-------------------------------------------------------+
+! |  program for 1D phononic ctystals with poroelasticity
+! |  solved bY PME(plain Expansion Method)
+! +-------------------------------------------------------+
+!===
+!   格子点を作成
+!   逆格子空間を作成
+!   入射波とパラメタを展開
+!   展開した係数から行列を作成
+!   LAPACKで固有値，固有ベクトルを出す
+!   与えた波数に対応した固有値，固有ベクトルを出力
+!
 program Phononic1D
   implicit none
     character :: material
 
-    integer :: iX, ig, l, k, iter, INFO
+    integer :: iX, l, k, iter, INFO
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=15, NE=100 !C 要素数，刻み数
+    integer, parameter :: nX=15, NE=100 ! 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
     real(DD) :: dkX, kX, kXmin, kXmax
@@ -35,62 +36,62 @@ program Phononic1D
     external coeff, DEIGSRT
 
 
-!C==================================================================
-!C +-------+
-!C | INIT. |
-!C +-------+
-!C===
+!==================================================================
+! +-------+
+! | INIT. |
+! +-------+
+!===
     open  (11, file='input1D.dat', status='unknown')
-    !C--フォノニック結晶の構造
-      read (11,*) lX                  !C 格子定数[m]
+    !--フォノニック結晶の構造
+      read (11,*) lX                  ! 格子定数[m]
       read (11,*) filling             ! 充填率　
                                       ! dA=filling*lX       :A層の厚さ
                                       ! dB=(1-filling)*lX   :B層の厚さ
-    !C--多孔質体(poroelastic)の物質パラメタ
-      read (11,*) rhoSp, rhoFp        !C 多孔質体での密度(固体，流体)[kg m-3]
-      read (11,*) Ksp, Kfp            !C 体積弾性率（固体，流体）[Pa]
-      read (11,*) Kbp, mubp           !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
-      read (11,*) fp                  !C 孔隙率，迷路度
-    !C--基盤(Host)の物質パラメタ
-      read (11,*) rhoSh, rhoFh        !C 多孔質体での密度(固体，流体)[kg m-3]
-      read (11,*) Ksh, Kfh            !C 体積弾性率（固体，流体）[Pa]
-      read (11,*) Kbh, mubh           !C バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
-      read (11,*) fh                  !C 孔隙率，迷路度
+    !--多孔質体(poroelastic)の物質パラメタ
+      read (11,*) rhoSp, rhoFp        ! 多孔質体での密度(固体，流体)[kg m-3]
+      read (11,*) Ksp, Kfp            ! 体積弾性率（固体，流体）[Pa]
+      read (11,*) Kbp, mubp           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
+      read (11,*) fp                  ! 孔隙率
+    !--基盤(Host)の物質パラメタ
+      read (11,*) rhoSh, rhoFh        ! 多孔質体での密度(固体，流体)[kg m-3]
+      read (11,*) Ksh, Kfh            ! 体積弾性率（固体，流体）[Pa]
+      read (11,*) Kbh, mubh           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
+      read (11,*) fh                  ! 孔隙率
     close (11)
 
     pi=4.0d0*datan(1.0d0)
     pi2=2.0d0*pi
 
-!C===
+!===
 
-!C==================================================================
-!C +--------------------------------+
-!C | 逆格子ベクトルG1(G),G2(G")の作成 |
-!C +--------------------------------+
-!C===
-  !C--{第一ブリルアンゾーンの境界} = {逆格子ベクトルの辺垂直二等分線}
-  !C--{刻み幅} = {格子の辺長}/{刻み数}
+!==================================================================
+! +--------------------------------+
+! | 逆格子ベクトルG1(G),G2(G")の作成 |
+! +--------------------------------+
+!===
+  !--{第一ブリルアンゾーンの境界} = {逆格子ベクトルの辺垂直二等分線}
+  !--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
     kXmax = pi/lX
     dkX = (kXmax - kXmin) / NE
 
-  !C--{逆格子点の数} = 2*{正方向の要素数}+{原点}
-  !C--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
+  !--{逆格子点の数} = 2*{正方向の要素数}+{原点}
+  !--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
     iter=0
     do iX = -nX, nX
      iter = iter+1
      gX(iter) = (pi2/lX)*dble(iX)
     end do
-!C===
+!===
 
-!C==================================================================
-!C +--------------------------------------------+
-!C | 多孔質体中の物理パラメータを定める  　　　　　 |
-!C +--------------------------------------------+
-!C===
+!==================================================================
+! +--------------------------------------------+
+! | 多孔質体中の物理パラメータを定める  　　　　　 |
+! +--------------------------------------------+
+!===
   open (25, file="elastic.dat")
   do iter = 1,2
-  !C--多孔質体中では
+  !--多孔質体中では
     if ( iter .eq. 1 ) then
       f = fp
       rhoS = rhoSp
@@ -100,7 +101,7 @@ program Phononic1D
       Kb = Kbp
       mub = mubp
       material = "poroelastic"
-      tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+      tor=f**(-2.0d0/3.0d0)                     ! 迷路度
     else
       f = fh
       rhoS = rhoSh
@@ -113,7 +114,7 @@ program Phononic1D
       if (f .eq. 0d0) then
         tor=1
       else
-        tor=f**(-2.0d0/3.0d0)                     !C 迷路度
+        tor=f**(-2.0d0/3.0d0)                     ! 迷路度
       end if
     end if
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
@@ -142,21 +143,21 @@ program Phononic1D
   close(25)
 
 
-!C==================================================================
-!C +---------------------------------------------+
-!C | 固有方程式のための行列A,Bを作成　　　　　　　　 |
-!C | {固有値}*{B}.{固有ベクトル}={A}.{固有ベクトル} |
-!C | ZGGEVを使って固有値求める                     |
-!C +---------------------------------------------+
-!C===
-  !C--y=0とし，x方向の波数を増やす．
+!==================================================================
+! +---------------------------------------------+
+! | 固有方程式のための行列A,Bを作成　　　　　　　　 |
+! | {固有値}*{B}.{固有ベクトル}={A}.{固有ベクトル} |
+! | ZGGEVを使って固有値求める                     |
+! +---------------------------------------------+
+!===
+  !--y=0とし，x方向の波数を増やす．
   open(10,file='ZGGEV1D.dat')
   open(20,file='ZGGEV1D2.dat')
     do l=1,ngX
     do k=1,ngX
-       Pg(l,k)     = coeff(gX(l)-gX(k), P(1),     P(2), lx, filling)
-       Qg(l,k)     = coeff(gX(l)-gX(k), Q(1),     Q(2), lx, filling)
-       Rg(l,k)     = coeff(gX(l)-gX(k), R(1),     R(2), lx, filling)
+       Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
+       Qg(l,k)     = coeff(gX(l)-gX(k),     Q(1),     Q(2), lx, filling)
+       Rg(l,k)     = coeff(gX(l)-gX(k),     R(1),     R(2), lx, filling)
        rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lx, filling)
        rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lx, filling)
        rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
@@ -184,17 +185,17 @@ program Phononic1D
    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
   end do
-!C===
+!===
 end program Phononic1D
-!C********************************************************************
-!C********************************************************************
-!C********************************************************************
-!C********************************************************************
-!C==================================================================
-!C +-------------------------------+
-!C | フーリエ係数の作成　　　　　　　 |
-!C +-------------------------------+
-!C===
+!********************************************************************
+!********************************************************************
+!********************************************************************
+!********************************************************************
+!==================================================================
+! +-------------------------------+
+! | フーリエ係数の作成　　　　　　　 |
+! +-------------------------------+
+!===
 function coeff(gX, ap, ag, lx, f)
   implicit none
     integer :: k
@@ -210,8 +211,8 @@ function coeff(gX, ap, ag, lx, f)
     dA=f*lX    ! A層の厚さ、lXは周期長、fは充填率
     ph=0.5d0*gX*dA
 
-  !C--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
-  !C--      = f*{ap}+(1-f)*{ag} : G=0
+  !--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
+  !--      = f*{ap}+(1-f)*{ag} : G=0
     if (gX .ne. 0.0d0) then
 !      coeff = -(ap-ag)* f * (exp(-ai*gX*lX) - 1.0d0) / (gX * lX)
       coeff = (ap-ag)*f*exp(-ai*ph)*sin(ph)/ph
@@ -221,20 +222,20 @@ function coeff(gX, ap, ag, lx, f)
   return
 end function coeff
 
-!C***********************************************************************
-!C.! ROUTINE: EIGSRT
-!C.! PURPOSE: This routine given the eigenvalues and eigenvectorps
-!C.!          sorts the eigenvalues into ascending order, and rearranges the
-!C.!          columns of square matrix correspondingly.  The method is straight
-!C.!          insertion.
-!C.!
-!C.!          see pg. 348 w/ explanation pgs.335-376
-!C.!          Numerical Recipes: The Art of Scientific Programming
-!C.!          (FORTRAN version), 1st edition
-!C.!          W.H. Press, B.P. Flannery, S.A. Teukolsky, W.T. Vetterling
-!C.!          Cambridge Univ. Press., 1986
-!C.!
-!C***********************************************************************
+!***********************************************************************
+!.! ROUTINE: EIGSRT
+!.! PURPOSE: This routine given the eigenvalues and eigenvectorps
+!.!          sorts the eigenvalues into ascending order, and rearranges the
+!.!          columns of square matrix correspondingly.  The method is straight
+!.!          insertion.
+!.!
+!.!          see pg. 348 w/ explanation pgs.335-376
+!.!          Numerical Recipes: The Art of Scientific Programming
+!.!          (FORTRAN version), 1st edition
+!.!          W.H. Press, B.P. Flannery, S.A. Teukolsky, W.T. Vetterling
+!.!          Cambridge Univ. Press., 1986
+!.!
+!***********************************************************************
 SUBROUTINE DEIGSRT(D,V,N,NP)
 implicit none
 integer*4 :: n, np
