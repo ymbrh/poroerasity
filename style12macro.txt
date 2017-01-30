@@ -1,0 +1,45 @@
+Proc style12() : GraphStyle
+	PauseUpdate; Silent 1		// modifying window...
+	ModifyGraph/Z width=141.732,height=340.157
+	ModifyGraph/Z mode=2
+	ModifyGraph/Z marker[0]=19,marker[1]=19,marker[2]=19,marker[10]=19,marker[11]=19
+	ModifyGraph/Z marker[12]=19,marker[20]=19,marker[21]=19,marker[22]=19,marker[30]=19
+	ModifyGraph/Z marker[31]=19,marker[32]=19,marker[40]=19,marker[41]=19,marker[42]=19
+	ModifyGraph/Z marker[50]=19,marker[51]=19,marker[52]=19,marker[60]=19,marker[61]=19
+	ModifyGraph/Z lSize=1.5
+	ModifyGraph/Z rgb[0]=(65280,0,0),rgb[1]=(65280,0,0),rgb[2]=(65280,0,0),rgb[3]=(65280,0,0)
+	ModifyGraph/Z rgb[4]=(65280,0,0),rgb[5]=(65280,0,0),rgb[6]=(65280,0,0),rgb[7]=(65280,0,0)
+	ModifyGraph/Z rgb[8]=(65280,0,0),rgb[9]=(65280,0,0),rgb[10]=(65280,0,0),rgb[11]=(65280,0,0)
+	ModifyGraph/Z rgb[12]=(65280,0,0),rgb[13]=(65280,0,0),rgb[14]=(65280,0,0),rgb[15]=(65280,0,0)
+	ModifyGraph/Z rgb[16]=(65280,0,0),rgb[17]=(65280,0,0),rgb[18]=(65280,0,0),rgb[19]=(65280,0,0)
+	ModifyGraph/Z rgb[20]=(65280,0,0),rgb[21]=(65280,0,0),rgb[22]=(65280,0,0),rgb[23]=(65280,0,0)
+	ModifyGraph/Z rgb[24]=(65280,0,0),rgb[25]=(65280,0,0),rgb[26]=(65280,0,0),rgb[27]=(65280,0,0)
+	ModifyGraph/Z rgb[28]=(65280,0,0),rgb[29]=(65280,0,0),rgb[30]=(65280,0,0),rgb[31]=(65280,0,0)
+	ModifyGraph/Z rgb[32]=(65280,0,0),rgb[33]=(65280,0,0),rgb[34]=(65280,0,0),rgb[35]=(65280,0,0)
+	ModifyGraph/Z rgb[36]=(65280,0,0),rgb[37]=(65280,0,0),rgb[38]=(65280,0,0),rgb[39]=(65280,0,0)
+	ModifyGraph/Z rgb[40]=(65280,0,0),rgb[41]=(65280,0,0),rgb[42]=(65280,0,0),rgb[43]=(65280,0,0)
+	ModifyGraph/Z rgb[44]=(65280,0,0),rgb[45]=(65280,0,0),rgb[46]=(65280,0,0),rgb[47]=(65280,0,0)
+	ModifyGraph/Z rgb[48]=(65280,0,0),rgb[49]=(65280,0,0),rgb[50]=(65280,0,0),rgb[51]=(65280,0,0)
+	ModifyGraph/Z rgb[52]=(65280,0,0),rgb[53]=(65280,0,0),rgb[54]=(65280,0,0),rgb[55]=(65280,0,0)
+	ModifyGraph/Z rgb[56]=(65280,0,0),rgb[57]=(65280,0,0),rgb[58]=(65280,0,0),rgb[59]=(65280,0,0)
+	ModifyGraph/Z rgb[60]=(65280,0,0),rgb[61]=(65280,0,0)
+	ModifyGraph/Z msize[0]=4,msize[1]=4,msize[2]=4,msize[10]=4,msize[11]=4,msize[12]=4
+	ModifyGraph/Z msize[20]=4,msize[21]=4,msize[22]=4,msize[30]=4,msize[31]=4,msize[32]=4
+	ModifyGraph/Z msize[40]=4,msize[41]=4,msize[42]=4,msize[50]=4,msize[51]=4,msize[52]=4
+	ModifyGraph/Z msize[60]=4,msize[61]=4
+	ModifyGraph/Z tick=2
+	ModifyGraph/Z mirror=1
+	ModifyGraph/Z font="Times New Roman"
+	ModifyGraph/Z minor=1
+	ModifyGraph/Z fSize=14
+	ModifyGraph/Z lblMargin(left)=12,lblMargin(bottom)=11
+	ModifyGraph/Z standoff=0
+	ModifyGraph/Z notation=1
+	ModifyGraph/Z lblLatPos=-1
+	ModifyGraph/Z ZisZ=1
+	ModifyGraph/Z zapTZ=1
+	Label/Z left "\\Z14\\F'Times New Roman'Frequency (Hz)"
+	Label/Z bottom "\\Z14\\F'Times New Roman'k\\Bx\\M\\Z14D"
+	SetAxis/Z left 0,12000
+	SetAxis/Z bottom 0,3.1415927
+EndMacro
