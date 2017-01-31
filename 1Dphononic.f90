@@ -12,11 +12,12 @@
 !
 program Phononic1D
   implicit none
-    character :: material
 
-    integer :: iX, l, k, iter, INFO
+    character :: material*4, nr*3
+
+    integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=15, NE=100 ! 要素数，刻み数
+    integer, parameter :: nX=50, NE=100 ! 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
     real(DD) :: dkX, kX, kXmin, kXmax
@@ -35,13 +36,15 @@ program Phononic1D
 
     external coeff, DEIGSRT
 
-
+!--{input_iについて連続で計算させるルーチン}
+do 100 i=1,7
+write(nr,'(I3.3)') i
 !==================================================================
 ! +-------+
 ! | INIT. |
 ! +-------+
 !===
-    open  (11, file='input1D.dat', status='unknown')
+    open  (11, file='input1D_'//nr//'.dat', status='unknown')
     !--フォノニック結晶の構造
       read (11,*) lX                  ! 格子定数[m]
       read (11,*) filling             ! 充填率　
@@ -53,7 +56,7 @@ program Phononic1D
       read (11,*) Kbp, mubp           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) fp                  ! 孔隙率
     !--基盤(Host)の物質パラメタ
-      read (11,*) rhoSh, rhoFh        ! 多孔質体での密度(固体，流体)[kg m-3]
+      read (11,*) rhoSh, rhoFh        ! ホストでの密度(固体，流体)[kg m-3]
       read (11,*) Ksh, Kfh            ! 体積弾性率（固体，流体）[Pa]
       read (11,*) Kbh, mubh           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) fh                  ! 孔隙率
@@ -89,7 +92,7 @@ program Phononic1D
 ! | 多孔質体中の物理パラメータを定める  　　　　　 |
 ! +--------------------------------------------+
 !===
-  open (25, file="elastic.dat")
+  open (25, file='elastic1D_'//nr//'.dat', status='unknown')
   do iter = 1,2
   !--多孔質体中では
     if ( iter .eq. 1 ) then
@@ -100,7 +103,7 @@ program Phononic1D
       Kf = Kfp
       Kb = Kbp
       mub = mubp
-      material = "poroelastic"
+      material = "poro"
       tor=f**(-2.0d0/3.0d0)                     ! 迷路度
     else
       f = fh
@@ -151,8 +154,8 @@ program Phononic1D
 ! +---------------------------------------------+
 !===
   !--y=0とし，x方向の波数を増やす．
-  open(10,file='ZGGEV1D.dat')
-  open(20,file='ZGGEV1D2.dat')
+  open(10,file='1D_ZGGEV_'//nr//'.dat')
+  open(20,file='1D_ZGGEV2_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX
        Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
@@ -182,10 +185,12 @@ program Phononic1D
       & WORK, LWORK, RWORK, INFO)
      eigen = sqrt(ALPHA/BETA)/pi2
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
-   write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
-   write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
+   write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
+   write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
   end do
 !===
+100 continue
+
 end program Phononic1D
 !********************************************************************
 !********************************************************************
