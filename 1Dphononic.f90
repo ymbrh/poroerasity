@@ -36,7 +36,7 @@ program Phononic1D
 
     external coeff, DEIGSRT
 
-!--{input_iについて連続で計算させるルーチン}
+!--{input_xxxについて連続で計算させるルーチン}
 do 100 i=1,7
 write(nr,'(I3.3)') i
 !==================================================================
@@ -105,6 +105,7 @@ write(nr,'(I3.3)') i
       mub = mubp
       material = "poro"
       tor=f**(-2.0d0/3.0d0)                     ! 迷路度
+  !--基盤中では
     else
       f = fh
       rhoS = rhoSh
@@ -188,7 +189,7 @@ write(nr,'(I3.3)') i
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
    write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
-   write(30,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
+   write(30,'(500(e24.10e3,2x),i5)') kX, dble(VR)
   end do
 !===
 100 continue
@@ -228,6 +229,7 @@ function coeff(gX, ap, ag, lx, f)
     endif
   return
 end function coeff
+!===
 
 !***********************************************************************
 !.! ROUTINE: EIGSRT
