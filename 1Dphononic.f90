@@ -17,7 +17,7 @@ program Phononic1D
 
     integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
+    integer, parameter :: nX=50, NE=100 ! 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
     real(DD) :: dkX, kX, kXmin, kXmax
@@ -115,11 +115,16 @@ write(nr,'(I3.3)') i
       Kb = Kbh
       mub = mubh
       material = "host"
+!********************************************************************
+    !--{tor}={f^-2/3}の定義より，ホスト基盤が
+    !--f=0(すべて固体)の時に発散しないようにする必要がある
+    !--迷路度の定義の妥当性が不明だが元の論文が$30のため保留
       if (f .eq. 0d0) then
         tor=1                                     ! 発散防止
       else
         tor=f**(-2.0d0/3.0d0)                     ! 迷路度
       end if
+!********************************************************************
     end if
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
     rho12(iter) = -(tor-1.0d0)*f*rhoF
@@ -157,7 +162,7 @@ write(nr,'(I3.3)') i
   !--y=0とし，x方向の波数を増やす．
   open(10,file='1D_Re_'//nr//'.dat')
   open(20,file='1D_Im_'//nr//'.dat')
-  open(30,file='1D_EV_'//nr//'.dat')
+  open(26,file='1D_EV_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX
        Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
@@ -189,7 +194,7 @@ write(nr,'(I3.3)') i
      call DEIGSRT(eigen,VR,ngX*2,ngX*2)
    write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
    write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
-   write(30,'(500(e24.10e3,2x),i5)') kX, dble(VR)
+   write(26,'(500(e24.10e3,2x),i5)') kX, dble(VR)
   end do
 !===
 100 continue
