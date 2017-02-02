@@ -15,7 +15,7 @@ program poroerastic1D_imp
     character :: material*4, nr*3
     integer :: iX, iY, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=10, nY=10, NE=100  ! 要素数,刻み幅
+    integer, parameter :: nX=50, nY=50, NE=100  ! 要素数,刻み幅
   !--{点の数} = 2*{正方向の要素数}+{原点}
   !--{点の総数} = {X方向の点の数}*{Y方向の点の数}
     integer, parameter :: ngX=2*nX+1
@@ -30,7 +30,7 @@ program poroerastic1D_imp
     real(DD) :: lX, lY, pi, pi2, RWORK(ngX4*8)
 
     complex :: coeff
-    complex(DD),dimension(1:ngX4, 1:ngX4) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
+    complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
     complex(DD),dimension(1:ngX4, 1:ngX4) :: A, B, VL, VR
     complex(DD) :: eigen(ngX4), ALPHA(ngX4), BETA(ngX4), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
