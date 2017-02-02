@@ -1,5 +1,5 @@
 ! +-------------------------------------------------------+
-! |  program for 1D phononic ctystals with poroelasticity
+! |  program for 2D phononic ctystals with poroelasticity
 ! |  solved bY PME(plain Expansion Method)
 ! +-------------------------------------------------------+
 !===
@@ -10,33 +10,33 @@
 !   LAPACKで固有値，固有ベクトルを出す
 !   与えた波数に対応した固有値，固有ベクトルを出力
 !
-program Phononic1D
-  implicit none
-
+program poroerastic1D_imp
+    implicit none
     character :: material*4, nr*3
-
-    integer :: iX, l, k, iter, INFO, i
+    integer :: iX, iY, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=50, NE=100 ! 要素数，刻み数
-    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
+    integer, parameter :: nX=10, nY=10, NE=100  ! 要素数,刻み幅
+  !--{点の数} = 2*{正方向の要素数}+{原点}
+  !--{点の総数} = {X方向の点の数}*{Y方向の点の数}
+    integer, parameter :: ngX=2*nX+1
+    integer, parameter :: ngX2=ngX*2, ngX3=ngX*3, ngX4=ngX*4, LWORK=ngX4*2
 
-    real(DD) :: dkX, kX, kXmin, kXmax
+    real(DD) :: dkX, dkY, kX, kY, kXmin, kYmin, kXmax, kYmax
     real(DD) :: gX(ngX)
-    real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R
-    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
+    real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R, mub
+    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mu, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
-    real(DD) :: lX, pi, pi2, RWORK(ngx8*2)
+    real(DD) :: lX, lY, pi, pi2, RWORK(ngX4*8)
 
     complex :: coeff
-    complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
-    complex(DD),dimension(1:ngX*2, 1:ngX*2) :: A, B, VL, VR
-    complex(DD) :: eigen(ngX*2), ALPHA(ngX*2), BETA(ngX*2), WORK(LWORK)
+    complex(DD),dimension(1:ngX4, 1:ngX4) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
+    complex(DD),dimension(1:ngX4, 1:ngX4) :: A, B, VL, VR
+    complex(DD) :: eigen(ngX4), ALPHA(ngX4), BETA(ngX4), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
 
     external coeff, DEIGSRT
 
-!--{input_xxxについて連続で計算させるルーチン}
 do 100 i=1,8
 write(nr,'(I3.3)') i
 !==================================================================
@@ -46,7 +46,7 @@ write(nr,'(I3.3)') i
 !===
     open  (11, file='input1D_'//nr//'.dat', status='unknown')
     !--フォノニック結晶の構造
-      read (11,*) lX                  ! 格子定数[m]
+      read (11,*) lX              ! 格子定数[m]
       read (11,*) filling             ! 充填率　
                                       ! dA=filling*lX       :A層の厚さ
                                       ! dB=(1-filling)*lX   :B層の厚さ
@@ -56,13 +56,13 @@ write(nr,'(I3.3)') i
       read (11,*) Kbp, mubp           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) fp                  ! 孔隙率
     !--基盤(Host)の物質パラメタ
-      read (11,*) rhoSh, rhoFh        ! ホストでの密度(固体，流体)[kg m-3]
+      read (11,*) rhoSh, rhoFh        ! 多孔質体での密度(固体，流体)[kg m-3]
       read (11,*) Ksh, Kfh            ! 体積弾性率（固体，流体）[Pa]
       read (11,*) Kbh, mubh           ! バルクの弾性定数（体積弾性率，せん断弾性率）[Pa]
       read (11,*) fh                  ! 孔隙率
     close (11)
 
-    pi=4.0d0*datan(1.0d0)
+    pi=4.0d0*atan(1.0d0)
     pi2=2.0d0*pi
 
 !===
@@ -77,9 +77,11 @@ write(nr,'(I3.3)') i
     kXmin = 0.0d0
     kXmax = pi/lX
     dkX = (kXmax - kXmin) / NE
+    kYmin = 0.0d0
+    kYmax = pi/lY
+    dkY = (kYmax - kYmin) / NE
 
-  !--{逆格子点の数} = 2*{正方向の要素数}+{原点}
-  !--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
+  !--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
     iter=0
     do iX = -nX, nX
      iter = iter+1
@@ -92,7 +94,7 @@ write(nr,'(I3.3)') i
 ! | 多孔質体中の物理パラメータを定める  　　　　　 |
 ! +--------------------------------------------+
 !===
-  open (25, file='elastic1D_'//nr//'.dat', status='unknown')
+  open (25, file='elastic1Dimp_'//nr//'.dat', status='unknown')
   do iter = 1,2
   !--多孔質体中では
     if ( iter .eq. 1 ) then
@@ -102,9 +104,9 @@ write(nr,'(I3.3)') i
       Ks = Ksp
       Kf = Kfp
       Kb = Kbp
-      mub = mubp
-      material = "poro"
-      tor=f**(-2.0d0/3.0d0)                     ! 迷路度
+      mu = mubp
+      material = "poroelastic"
+      tor=f**(-2.0d0/3.0d0)           ! 迷路度
   !--基盤中では
     else
       f = fh
@@ -113,7 +115,7 @@ write(nr,'(I3.3)') i
       Ks = Ksh
       Kf = Kfh
       Kb = Kbh
-      mub = mubh
+      mu = mubh
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -124,13 +126,14 @@ write(nr,'(I3.3)') i
       else
         tor=f**(-2.0d0/3.0d0)                     ! 迷路度
       end if
-!********************************************************************
+!*******************************************************************
     end if
+    mub(iter) = mu
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
     rho12(iter) = -(tor-1.0d0)*f*rhoF
     rho22(iter) = tor*f*rhoF
     bunbo=1.0d0-f-Kb/Ks + f*Ks/Kf
-    P(iter) = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
+    P(iter) = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mu/3.0d0
     Q(iter) = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
     R(iter) = (f**2 *Ks)/bunbo
     write(25,*) material
@@ -139,7 +142,7 @@ write(nr,'(I3.3)') i
     write(25,*) 'Ks =', Ks
     write(25,*) 'Kf =', Kf
     write(25,*) 'Kb =', Kb
-    write(25,*) 'mub =', mub
+    write(25,*) 'mub =', mu
     write(25,*) 'f =', f
     write(25,*) 'tor =',tor
   end do
@@ -149,8 +152,9 @@ write(nr,'(I3.3)') i
     write(25,*) 'rho11 =', rho11
     write(25,*) 'rho12 =', rho12
     write(25,*) 'rho22 =', rho22
+    write(25,*) 'mub =', mub
   close(25)
-
+!===
 
 !==================================================================
 ! +---------------------------------------------+
@@ -159,49 +163,143 @@ write(nr,'(I3.3)') i
 ! | ZGGEVを使って固有値求める                     |
 ! +---------------------------------------------+
 !===
-  !--y=0とし，x方向の波数を増やす．
-  open(10,file='1D_Re_'//nr//'.dat')
-  open(20,file='1D_Im_'//nr//'.dat')
-  open(26,file='1D_EV_'//nr//'.dat')
+  !--係数のマトリクスを作成
+  open(10,file='1Dimp_Re_'//nr//'.dat')
+  open(20,file='1Dimp_Im_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX
-       Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
-       Qg(l,k)     = coeff(gX(l)-gX(k),     Q(1),     Q(2), lx, filling)
-       Rg(l,k)     = coeff(gX(l)-gX(k),     R(1),     R(2), lx, filling)
-       rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lx, filling)
-       rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lx, filling)
-       rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
+       Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lX, filling)
+       Qg(l,k)     = coeff(gX(l)-gX(k),     Q(1),     Q(2), lX, filling)
+       Rg(l,k)     = coeff(gX(l)-gX(k),     R(1),     R(2), lX, filling)
+       rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lX, filling)
+       rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lX, filling)
+       rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lX, filling)
+       mubg(l,k)   = coeff(gX(l)-gX(k),   mub(1),   mub(2), lX, filling)
     end do
     end do
-  do iter = -NE, NE
+
+  !--y=0とし，x方向の波数を増やす（Γ-X）
+  kY = 0.0d0
+    do iter = 0, NE
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
-        A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l    ,k+ngX) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l+ngX,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
-        A(l+ngX,k+ngX) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
-        B(l    ,k    ) = rho11g(l,k)
-        B(l    ,k+ngX) = rho12g(l,k)
-        B(l+ngX,k    ) = rho12g(l,k)
-        B(l+ngX,k+ngX) = rho22g(l,k)
-     end do
-     end do
+      A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l)) &
+                     &+mubg(l,k)*(kY)*(kY)
+      A(l    ,k+ngX ) = (Pg(l,k)-2d0*mubg(l,k))*(kY)*(kX+gX(l))&
+                     &+mubg(l,k)*(kX+gX(k))*(kY)
+      A(l    ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l    ,k+ngX3) = Qg(l,k)*(kY)*(kX+gX(l))
 
-     call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
+      A(l+ngX ,k    ) = (Pg(l,k)-2d0*mubg(l,k))*(kX+gX(k))*(kY)&
+                     &+mubg(l,k)*(kY)*(kX+gX(l))
+      A(l+ngX ,k+ngX ) = Pg(l,k)*(kY)*(kY) &
+                   &+mubg(l,k)*((kX+gX(k))*(kX+gX(l)))
+      A(l+ngX ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX ,k+ngX3) = Qg(l,k)*(kY)*(kY)
+
+      A(l+ngX2,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l+ngX2,k+ngX ) = Qg(l,k)*(kY)*(kX+gX(l))
+      A(l+ngX2,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l+ngX2,k+ngX3) = Rg(l,k)*(kY)*(kX+gX(l))
+
+      A(l+ngX3,k    ) = Qg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX3,k+ngX ) = Qg(l,k)*(kY)*(kY)
+      A(l+ngX3,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX3,k+ngX3) = Rg(l,k)*(kY)*(kY)
+
+      B(l    ,k    ) = rho11g(l,k)
+      B(l    ,k+ngX ) = 0
+      B(l    ,k+ngX2) = rho12g(l,k)
+      B(l    ,k+ngX3) = 0
+
+      B(l+ngX ,k    ) = 0
+      B(l+ngX ,k+ngX ) = rho11g(l,k)
+      B(l+ngX ,k+ngX2) = 0
+      B(l+ngX ,k+ngX3) = rho12g(l,k)
+
+      B(l+ngX2,k    ) = rho12g(l,k)
+      B(l+ngX2,k+ngX ) = 0
+      B(l+ngX2,k+ngX2) = rho22g(l,k)
+      B(l+ngX2,k+ngX3) = 0
+
+      B(l+ngX3,k    ) = 0
+      B(l+ngX3,k+ngX ) = rho12g(l,k)
+      B(l+ngX3,k+ngX2) = 0
+      B(l+ngX3,k+ngX3) = rho22g(l,k)
+     end do
+     end do
+     call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = sqrt(ALPHA/BETA)/pi2
-     call DEIGSRT(eigen,VR,ngX*2,ngX*2)
-   write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
-   write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
-   write(26,'(500(e24.10e3,2x),i5)') kX, dble(VR)
-  end do
+     eigen = SQRT(ALPHA/BETA)/pi2
+    call DEIGSRT(eigen,VR,ngX4,ngX4)
+     write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
+     write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
+   end do
+
+  ! !--kX=MAXとし，y方向の波数を増やす（X-M）
+  kX = kXmax
+    do iter = 0, NE
+     kY = dkY*dble(iter)
+      do l=1,ngX
+      do k=1,ngX
+        A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l)) &
+                       &+mubg(l,k)*((kY)*(kY))
+        A(l    ,k+ngX ) = (Pg(l,k)-2d0*mubg(l,k))*(kY)*(kX+gX(l))&
+                       &+mubg(l,k)*(kX+gX(k))*(kY)
+        A(l    ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l    ,k+ngX3) = Qg(l,k)*(kY)*(kX+gX(l))
+
+        A(l+ngX ,k    ) = (Pg(l,k)-2d0*mubg(l,k))*(kX+gX(k))*(kY)&
+                       &+mubg(l,k)*(kY)*(kX+gX(l))
+        A(l+ngX ,k+ngX ) = Pg(l,k)*(kY)*(kY) &
+                     &+mubg(l,k)*((kX+gX(k))*(kX+gX(l)))
+        A(l+ngX ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kY)
+        A(l+ngX ,k+ngX3) = Qg(l,k)*(kY)*(kY)
+
+        A(l+ngX2,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX2,k+ngX ) = Qg(l,k)*(kY)*(kX+gX(l))
+        A(l+ngX2,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
+        A(l+ngX2,k+ngX3) = Rg(l,k)*(kY)*(kX+gX(l))
+
+        A(l+ngX3,k    ) = Qg(l,k)*(kX+gX(k))*(kY)
+        A(l+ngX3,k+ngX ) = Qg(l,k)*(kY)*(kY)
+        A(l+ngX3,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kY)
+        A(l+ngX3,k+ngX3) = Rg(l,k)*(kY)*(kY)
+
+        B(l    ,k    ) = rho11g(l,k)
+        B(l    ,k+ngX ) = 0
+        B(l    ,k+ngX2) = rho12g(l,k)
+        B(l    ,k+ngX3) = 0
+
+        B(l+ngX ,k    ) = 0
+        B(l+ngX ,k+ngX ) = rho11g(l,k)
+        B(l+ngX ,k+ngX2) = 0
+        B(l+ngX ,k+ngX3) = rho12g(l,k)
+
+        B(l+ngX2,k    ) = rho12g(l,k)
+        B(l+ngX2,k+ngX ) = 0
+        B(l+ngX2,k+ngX2) = rho22g(l,k)
+        B(l+ngX2,k+ngX3) = 0
+
+        B(l+ngX3,k    ) = 0
+        B(l+ngX3,k+ngX ) = rho12g(l,k)
+        B(l+ngX3,k+ngX2) = 0
+        B(l+ngX3,k+ngX3) = rho22g(l,k)
+      end do
+      end do
+      call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
+       & WORK, LWORK, RWORK, INFO)
+     eigen = SQRT(ALPHA/BETA)/pi2
+     call DEIGSRT(eigen,VR,ngX4,ngX4)
+     write(10,'(1500(e24.10e3,2x),i5)') kXmax+kY, dble(eigen)
+     write(20,'(1500(e24.10e3,2x),i5)') kXmax+kY, imag(eigen)
+    end do
 !===
 100 continue
 
-end program Phononic1D
-!********************************************************************
-!********************************************************************
+end program poroerastic1D_imp
+
 !********************************************************************
 !********************************************************************
 !==================================================================
@@ -209,19 +307,18 @@ end program Phononic1D
 ! | フーリエ係数の作成　　　　　　　 |
 ! +-------------------------------+
 !===
-function coeff(gX, ap, ag, lx, f)
+function coeff(gX, ap, ag, a, f)
   implicit none
     integer :: k
     integer,parameter::DD=kind(0d0)
-
     real(DD) :: ap, ag
-    real(DD) :: gX
-    real(DD) :: lX, pi, pi2, f, dA, ph
+    real(DD) :: gX !y方向はバルクなのでgYはない
+    real(DD) :: a, pi, pi2, f, dA, ph
 
     complex :: coeff
     complex(DD), parameter :: ai=dcmplx(0.0d0,1.0d0)
 
-    dA=f*lX    ! A層の厚さ、lXは周期長、fは充填率
+    dA=f*a    ! A層の厚さ、lXは周期長、fは充填率
     ph=0.5d0*gX*dA
 
   !--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0
@@ -238,7 +335,7 @@ end function coeff
 
 !***********************************************************************
 !.! ROUTINE: EIGSRT
-!.! PURPOSE: This routine given the eigenvalues and eigenvectorps
+!.! PURPOSE: This routine given the eigenvalues and eigenvectors
 !.!          sorts the eigenvalues into ascending order, and rearranges the
 !.!          columns of square matrix correspondingly.  The method is straight
 !.!          insertion.
