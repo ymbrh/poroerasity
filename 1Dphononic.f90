@@ -17,16 +17,18 @@ program Phononic1D
 
     integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=50, NE=100 ! 要素数，刻み数
+    integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
     integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
 
-    real(DD) :: dkX, kX, kXmin, kXmax
+    real(DD) :: dkX, kX, kXmin, kXmax, X
     real(DD) :: gX(ngX)
     real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
     real(DD) :: lX, pi, pi2, RWORK(ngx8*2)
+    !--多孔質体(シリカ)の波の伝搬速度
+    real(DD), parameter :: csl=5.970d3, cst=3.760d3
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
@@ -62,9 +64,8 @@ write(nr,'(I3.3)') i
       read (11,*) fh                  ! 孔隙率
     close (11)
 
-    pi=4.0d0*datan(1.0d0)
-    pi2=2.0d0*pi
-
+     pi=4.0d0*datan(1.0d0)
+     pi2=2.0d0*pi
 !===
 
 !==================================================================
@@ -188,13 +189,14 @@ write(nr,'(I3.3)') i
      end do
      end do
 
-     call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
+    call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = sqrt(ALPHA/BETA)/pi2
-     call DEIGSRT(eigen,VR,ngX*2,ngX*2)
-   write(10,'(500(e24.10e3,2x),i5)') kX, dble(eigen)
-   write(20,'(500(e24.10e3,2x),i5)') kX, imag(eigen)
-   write(26,'(500(e24.10e3,2x),i5)') kX, dble(VR)
+    eigen = sqrt(ALPHA/BETA)*lX/csl
+    X=kX*lX/pi
+    call DEIGSRT(eigen,VR,ngX*2,ngX*2)
+    write(10,'(500(e24.10e3,2x),i5)') X, dble(eigen)
+    write(20,'(500(e24.10e3,2x),i5)') X, imag(eigen)
+    write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
 !===
 100 continue

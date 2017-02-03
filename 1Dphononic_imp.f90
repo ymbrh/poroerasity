@@ -15,7 +15,7 @@ program poroerastic1D_imp
     character :: material*4, nr*3
     integer :: iX, iY, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
-    integer, parameter :: nX=50, nY=50, NE=100  ! 要素数,刻み幅
+    integer, parameter :: nX=150, nY=150, NE=100  ! 要素数,刻み幅
   !--{点の数} = 2*{正方向の要素数}+{原点}
   !--{点の総数} = {X方向の点の数}*{Y方向の点の数}
     integer, parameter :: ngX=2*nX+1
@@ -28,6 +28,8 @@ program poroerastic1D_imp
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
     real(DD) :: lX, lY, pi, pi2, RWORK(ngX4*8)
+    !--多孔質体(シリカ)の波の伝搬速度
+    real(DD), parameter :: csl=5.970d3, cst=3.760d3
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
@@ -65,6 +67,7 @@ write(nr,'(I3.3)') i
     pi=4.0d0*atan(1.0d0)
     pi2=2.0d0*pi
 
+    mus = cst**2.0d0 * rhoS
 !===
 
 !==================================================================
@@ -229,12 +232,13 @@ write(nr,'(I3.3)') i
       B(l+ngX3,k+ngX3) = rho22g(l,k)
      end do
      end do
-     call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
+    call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
       & WORK, LWORK, RWORK, INFO)
-     eigen = SQRT(ALPHA/BETA)/pi2
+    eigen = SQRT(ALPHA/BETA)*lX/csl
+    X=kX*lX/pi
     call DEIGSRT(eigen,VR,ngX4,ngX4)
-     write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
-     write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
    end do
 
   ! !--kX=MAXとし，y方向の波数を増やす（X-M）
@@ -290,10 +294,11 @@ write(nr,'(I3.3)') i
       end do
       call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
        & WORK, LWORK, RWORK, INFO)
-     eigen = SQRT(ALPHA/BETA)/pi2
-     call DEIGSRT(eigen,VR,ngX4,ngX4)
-     write(10,'(1500(e24.10e3,2x),i5)') kXmax+kY, dble(eigen)
-     write(20,'(1500(e24.10e3,2x),i5)') kXmax+kY, imag(eigen)
+    eigen = SQRT(ALPHA/BETA)*lX/csl
+    X=kX*lX/pi
+    call DEIGSRT(eigen,VR,ngX4,ngX4)
+    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
     end do
 !===
 100 continue
