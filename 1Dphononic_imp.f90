@@ -1,5 +1,5 @@
 ! +-------------------------------------------------------+
-! |  program for 2D phononic ctystals with poroelasticity
+! |  program for 1D phononic ctystals with poroelasticity
 ! |  solved bY PME(plain Expansion Method)
 ! +-------------------------------------------------------+
 !===
