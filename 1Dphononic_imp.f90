@@ -247,7 +247,7 @@ write(nr,'(I3.3)') i
       do l=1,ngX
       do k=1,ngX
         A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l)) &
-                       &+mubg(l,k)*((kY)*(kY))
+                       &+mubg(l,k)*(kY)*(kY)
         A(l    ,k+ngX ) = (Pg(l,k)-2d0*mubg(l,k))*(kY)*(kX+gX(l))&
                        &+mubg(l,k)*(kX+gX(k))*(kY)
         A(l    ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
