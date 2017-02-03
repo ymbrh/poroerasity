@@ -19,7 +19,7 @@ program Phononic1D
     integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
-    integer, parameter :: ngX=2*nX+1, ngx8=ngx*8, LWORK=ngX*4
+    integer, parameter :: ngX=2*nX+1, ngX2=ngX*2, ngx8=ngx2*8, LWORK=ngX2*2 !dimA=ngX2
 
     real(DD) :: dkX, kX, kXmin, kXmax, X
     real(DD) :: gX(ngX)
@@ -27,14 +27,14 @@ program Phononic1D
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
-    real(DD) :: lX, pi, pi2, RWORK(ngx8*2)
+    real(DD) :: lX, pi, pi2, RWORK(ngx8)
     !--多孔質体(シリカ)の波の伝搬速度
     real(DD), parameter :: csl=5.970d3, cst=3.760d3
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
-    complex(DD),dimension(1:ngX*2, 1:ngX*2) :: A, B, VL, VR
-    complex(DD) :: eigen(ngX*2), ALPHA(ngX*2), BETA(ngX*2), WORK(LWORK)
+    complex(DD),dimension(1:ngX2, 1:ngX2) :: A, B, VL, VR
+    complex(DD) :: eigen(ngX2), ALPHA(ngX2), BETA(ngX2), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
 
     external coeff, DEIGSRT
@@ -164,7 +164,7 @@ write(nr,'(I3.3)') i
   !--y=0とし，x方向の波数を増やす．
   open(10,file='1D_Re_'//nr//'.dat')
   open(20,file='1D_Im_'//nr//'.dat')
-  ! open(26,file='1D_EV_'//nr//'.dat')
+  open(26,file='1D_EV_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX
        Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
@@ -175,7 +175,7 @@ write(nr,'(I3.3)') i
        rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
     end do
     end do
-  do iter = -NE, NE
+  do iter = 0, NE
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
@@ -190,14 +190,14 @@ write(nr,'(I3.3)') i
      end do
      end do
 
-    call ZGGEV('N', 'V', ngX*2, A, ngX*2, B, ngX*2, ALPHA, BETA, VL, ngX*2, VR, ngX*2,&
+    call ZGGEV('N', 'V', ngX2, A, ngX2, B, ngX2, ALPHA, BETA, VL, ngX2, VR, ngX2,&
       & WORK, LWORK, RWORK, INFO)
     eigen = sqrt(ALPHA/BETA)*lX/csl
     X=kX*lX/pi
-    call DEIGSRT(eigen,VR,ngX*2,ngX*2)
+    call DEIGSRT(eigen,VR,ngX2,ngX2)
     write(10,'(500(e24.10e3,2x),i5)') X, dble(eigen)
     write(20,'(500(e24.10e3,2x),i5)') X, imag(eigen)
-    ! write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
+    write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
 !===
 100 continue

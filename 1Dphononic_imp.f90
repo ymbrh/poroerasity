@@ -19,9 +19,9 @@ program poroerastic1D_imp
   !--{点の数} = 2*{正方向の要素数}+{原点}
   !--{点の総数} = {X方向の点の数}*{Y方向の点の数}
     integer, parameter :: ngX=2*nX+1
-    integer, parameter :: ngX2=ngX*2, ngX3=ngX*3, ngX4=ngX*4, LWORK=ngX4*2
+    integer, parameter :: ngX2=ngX*2, ngX3=ngX*3, ngX4=ngX*4, LWORK=ngX4*2 !dimA=ngX4
 
-    real(DD) :: dkX, dkY, kX, kY, kXmin, kYmin, kXmax, kYmax
+    real(DD) :: dkX, dkY, kX, kY, kXmin, kYmin, kXmax, kYmax, X, Y
     real(DD) :: gX(ngX)
     real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R, mub
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mu, f, tor, filling, bunbo
@@ -66,8 +66,6 @@ write(nr,'(I3.3)') i
 
     pi=4.0d0*atan(1.0d0)
     pi2=2.0d0*pi
-
-    mus = cst**2.0d0 * rhoS
 !===
 
 !==================================================================
@@ -80,6 +78,7 @@ write(nr,'(I3.3)') i
     kXmin = 0.0d0
     kXmax = pi/lX
     dkX = (kXmax - kXmin) / NE
+    lY = lX
     kYmin = 0.0d0
     kYmax = pi/lY
     dkY = (kYmax - kYmin) / NE
@@ -108,7 +107,7 @@ write(nr,'(I3.3)') i
       Kf = Kfp
       Kb = Kbp
       mu = mubp
-      material = "poroelastic"
+      material = "poro"
       tor=f**(-2.0d0/3.0d0)           ! 迷路度
   !--基盤中では
     else
@@ -295,10 +294,10 @@ write(nr,'(I3.3)') i
       call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
        & WORK, LWORK, RWORK, INFO)
     eigen = SQRT(ALPHA/BETA)*lX/csl
-    X=kX*lX/pi
+    Y=kY*lY/pi
     call DEIGSRT(eigen,VR,ngX4,ngX4)
-    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') kX+Y, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') kX+Y, imag(eigen)
     end do
 !===
 100 continue
