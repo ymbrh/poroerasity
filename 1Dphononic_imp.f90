@@ -39,7 +39,7 @@ program poroerastic1D_imp
 
     external coeff, DEIGSRT
 
-do 100 i=1,8
+do i=1,8
 write(nr,'(I3.3)') i
 !==================================================================
 ! +-------+
@@ -181,8 +181,8 @@ write(nr,'(I3.3)') i
     end do
 
   !--y=0とし，x方向の波数を増やす（Γ-X）
-  kY = 0.0d0
-    do iter = 0, NE
+    kY = 0.0d0
+    do iter = 0, NE-1
      kX = dkX*dble(iter)
      do l=1,ngX
      do k=1,ngX
@@ -241,8 +241,8 @@ write(nr,'(I3.3)') i
    end do
 
   ! !--kX=MAXとし，y方向の波数を増やす（X-M）
-  kX = kXmax
-    do iter = 0, NE
+    kX = kXmax
+    do iter = 0, NE-1
      kY = dkY*dble(iter)
       do l=1,ngX
       do k=1,ngX
@@ -294,13 +294,78 @@ write(nr,'(I3.3)') i
       call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
        & WORK, LWORK, RWORK, INFO)
     eigen = SQRT(ALPHA/BETA)*lX/csl
+    X=kXmax*lX/pi
     Y=kY*lY/pi
     call DEIGSRT(eigen,VR,ngX4,ngX4)
-    write(10,'(1500(e24.10e3,2x),i5)') kX+Y, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') kX+Y, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') X+Y, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') X+Y, imag(eigen)
     end do
+
+  ! !--kX=Max,kY=Maxから，原点方向に戻る（M-Γ）
+  do iter = 0, NE
+   kX = kXmax-dkX*dble(iter)
+   kY = kYmax-dkY*dble(iter)
+    do l=1,ngX
+    do k=1,ngX
+      A(l    ,k    ) = Pg(l,k)*(kX+gX(k))*(kX+gX(l)) &
+                     &+mubg(l,k)*(kY)*(kY)
+      A(l    ,k+ngX ) = (Pg(l,k)-2d0*mubg(l,k))*(kY)*(kX+gX(l))&
+                     &+mubg(l,k)*(kX+gX(k))*(kY)
+      A(l    ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l    ,k+ngX3) = Qg(l,k)*(kY)*(kX+gX(l))
+
+      A(l+ngX ,k    ) = (Pg(l,k)-2d0*mubg(l,k))*(kX+gX(k))*(kY)&
+                     &+mubg(l,k)*(kY)*(kX+gX(l))
+      A(l+ngX ,k+ngX ) = Pg(l,k)*(kY)*(kY) &
+                   &+mubg(l,k)*((kX+gX(k))*(kX+gX(l)))
+      A(l+ngX ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX ,k+ngX3) = Qg(l,k)*(kY)*(kY)
+
+      A(l+ngX2,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l+ngX2,k+ngX ) = Qg(l,k)*(kY)*(kX+gX(l))
+      A(l+ngX2,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l+ngX2,k+ngX3) = Rg(l,k)*(kY)*(kX+gX(l))
+
+      A(l+ngX3,k    ) = Qg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX3,k+ngX ) = Qg(l,k)*(kY)*(kY)
+      A(l+ngX3,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX3,k+ngX3) = Rg(l,k)*(kY)*(kY)
+
+      B(l    ,k    ) = rho11g(l,k)
+      B(l    ,k+ngX ) = 0
+      B(l    ,k+ngX2) = rho12g(l,k)
+      B(l    ,k+ngX3) = 0
+
+      B(l+ngX ,k    ) = 0
+      B(l+ngX ,k+ngX ) = rho11g(l,k)
+      B(l+ngX ,k+ngX2) = 0
+      B(l+ngX ,k+ngX3) = rho12g(l,k)
+
+      B(l+ngX2,k    ) = rho12g(l,k)
+      B(l+ngX2,k+ngX ) = 0
+      B(l+ngX2,k+ngX2) = rho22g(l,k)
+      B(l+ngX2,k+ngX3) = 0
+
+      B(l+ngX3,k    ) = 0
+      B(l+ngX3,k+ngX ) = rho12g(l,k)
+      B(l+ngX3,k+ngX2) = 0
+      B(l+ngX3,k+ngX3) = rho22g(l,k)
+    end do
+    end do
+    call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
+     & WORK, LWORK, RWORK, INFO)
+  eigen = SQRT(ALPHA/BETA)*lX/csl
+  X=kXmax*lX/pi
+  Y=kY*lY/pi
+  call DEIGSRT(eigen,VR,ngX4,ngX4)
+  write(10,'(1500(e24.10e3,2x),i5)') X+Y, dble(eigen)
+  write(20,'(1500(e24.10e3,2x),i5)') X+Y, imag(eigen)
+  end do
+
+  close(10)
+  close(20)
 !===
-100 continue
+end do
 
 end program poroerastic1D_imp
 

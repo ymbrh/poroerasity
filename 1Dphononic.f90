@@ -15,7 +15,6 @@ program Phononic1D
   implicit none
 
     character :: material*4, nr*3
-
     integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
@@ -40,7 +39,7 @@ program Phononic1D
     external coeff, DEIGSRT
 
 !--{input_xxxについて連続で計算させるルーチン}
-do 100 i=1,8
+do i=1,8
 write(nr,'(I3.3)') i
 !==================================================================
 ! +-------+
@@ -65,7 +64,7 @@ write(nr,'(I3.3)') i
       read (11,*) fh                  ! 孔隙率
     close (11)
 
-     pi=4.0d0*datan(1.0d0)
+     pi=4.0d0*atan(1.0d0)
      pi2=2.0d0*pi
 !===
 
@@ -128,6 +127,7 @@ write(nr,'(I3.3)') i
       end if
 !********************************************************************
     end if
+    !--縦波のみ考えるので{mub}はPの内部のみ現れる．
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
     rho12(iter) = -(tor-1.0d0)*f*rhoF
     rho22(iter) = tor*f*rhoF
@@ -173,6 +173,7 @@ write(nr,'(I3.3)') i
        rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lx, filling)
        rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lx, filling)
        rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
+      !--縦波のモードのみを考えるので{mub}はマトリクスに含まれない．
     end do
     end do
   do iter = 0, NE
@@ -199,8 +200,12 @@ write(nr,'(I3.3)') i
     write(20,'(500(e24.10e3,2x),i5)') X, imag(eigen)
     write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
+
+  close(10)
+  close(20)
+  close(26)
 !===
-100 continue
+end do
 
 end program Phononic1D
 !********************************************************************
