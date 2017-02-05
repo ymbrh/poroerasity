@@ -18,7 +18,7 @@ program Phononic1D
     integer :: iX, l, k, iter, INFO, i
     integer, parameter :: DD=kind(0d0)
     integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
-    integer, parameter :: ngX=2*nX+1, ngX2=ngX*2, ngx8=ngx2*8, LWORK=ngX2*2 !dimA=ngX2
+    integer, parameter :: ngX=2*nX+1, ngX2=ngX*2, ngX8=ngX*8, LWORK=ngX2*2 !dimA=ngX2
 
     real(DD) :: dkX, kX, kXmin, kXmax, X
     real(DD) :: gX(ngX)
@@ -26,7 +26,7 @@ program Phononic1D
     real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
-    real(DD) :: lX, pi, pi2, RWORK(ngx8)
+    real(DD) :: lX, pi, pi2, RWORK(ngX2*8)
     !--多孔質体(シリカ)の波の伝搬速度
     real(DD), parameter :: csl=5.970d3, cst=3.760d3
 
