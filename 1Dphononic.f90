@@ -164,7 +164,7 @@ write(nr,'(I3.3)') i
   !--y=0とし，x方向の波数を増やす．
   open(10,file='1D_Re_'//nr//'.dat')
   open(20,file='1D_Im_'//nr//'.dat')
-  open(26,file='1D_EV_'//nr//'.dat')
+  ! open(26,file='1D_EV_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX
        Pg(l,k)     = coeff(gX(l)-gX(k),     P(1),     P(2), lx, filling)
@@ -198,12 +198,12 @@ write(nr,'(I3.3)') i
     call DEIGSRT(eigen,VR,ngX2,ngX2)
     write(10,'(500(e24.10e3,2x),i5)') X, dble(eigen)
     write(20,'(500(e24.10e3,2x),i5)') X, imag(eigen)
-    write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
+    ! write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
 
   close(10)
   close(20)
-  close(26)
+  ! close(26)
 !===
 end do
 
