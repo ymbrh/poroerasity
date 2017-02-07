@@ -65,10 +65,10 @@ ModifyGraph/W=Graph0/Z notation=1
 ModifyGraph/W=Graph0/Z lblLatPos=-1
 ModifyGraph/W=Graph0/Z ZisZ=1
 ModifyGraph/W=Graph0/Z zapTZ=1
-Label/W=Graph0/Z left "\\Z14\\F'Times New Roman'Frequency (Hz)"
-Label/W=Graph0/Z bottom "\\Z14\\F'Times New Roman'k\\Bx\\M\\Z14D"
-SetAxis/W=Graph0/Z left 0,12000
-SetAxis/W=Graph0/Z bottom 0,3.1415927
+Label/W=Graph0/Z left "\\Z14\\F'Times New Roman'\\F'Symbol'w\\F'Times New Roman'd/c\\Bl"
+Label/W=Graph0/Z bottom "\\Z14\\F'Times New Roman'k\\Bx\\M\\Z14d/\\F'Symbol'p"
+SetAxis/W=Graph0/Z left 0,12
+SetAxis/W=Graph0/Z bottom 0,1
 
 ModifyGraph/W=Graph1/W=Graph1/Z width=141.732,height=340.157
 ModifyGraph/W=Graph1/Z mode=2
@@ -84,10 +84,10 @@ ModifyGraph/W=Graph1/Z notation=1
 ModifyGraph/W=Graph1/Z lblLatPos=-1
 ModifyGraph/W=Graph1/Z ZisZ=1
 ModifyGraph/W=Graph1/Z zapTZ=1
-Label/W=Graph1/Z left "\\Z14\\F'Times New Roman'Frequency (Hz)"
-Label/W=Graph1/Z bottom "\\Z14\\F'Times New Roman'k\\Bx\\M\\Z14D"
-SetAxis/W=Graph1/Z left 0,12000
-SetAxis/W=Graph1/Z bottom 0,3.1415927
+Label/W=Graph1/Z left "\\Z14\\F'Times New Roman'\\F'Symbol'w\\F'Times New Roman'd/c\\Bl"
+Label/W=Graph1/Z bottom "\\Z14\\F'Times New Roman'k\\Bx\\M\\Z14d/\\F'Symbol'p"
+SetAxis/W=Graph1/Z left 0,12
+SetAxis/W=Graph1/Z bottom 0,1
 
 SavePICT/W=Graph0//E=-5/B=288
 SavePICT/W=Graph1//E=-5/B=288

@@ -2,6 +2,7 @@
 ! |  program for 1D phononic ctystals with poroelasticity
 ! |  solved bY PME(plain Expansion Method)
 ! +-------------------------------------------------------+
+
 !===
 !   格子点を作成
 !   逆格子空間を作成
@@ -10,29 +11,27 @@
 !   LAPACKで固有値，固有ベクトルを出す
 !   与えた波数に対応した固有値，固有ベクトルを出力
 !
-program Phononic1D_noY
+program Phononic1D
   implicit none
-  character :: material*4, nr*3
-  integer :: iX, iY, l, k, iter, INFO, i
-  integer, parameter :: DD=kind(0d0)
-  integer, parameter :: nX=150, nY=150, NE=100  ! 要素数,刻み幅
-!--{点の数} = 2*{正方向の要素数}+{原点}
-!--{点の総数} = {X方向の点の数}*{Y方向の点の数}
-  integer, parameter :: ngX=2*nX+1
-  integer, parameter :: ngX2=ngX*2, ngX3=ngX*3, ngX4=ngX*4, LWORK=ngX2*2 !dimA=ngX2
+
+    character :: material*4, nr*3
+    integer :: iX, l, k, iter, INFO, i
+    integer, parameter :: DD=kind(0d0)
+    integer, parameter :: nX=150, NE=100 ! 要素数，刻み数
+    integer, parameter :: ngX=2*nX+1, ngX2=ngX*2, ngX8=ngX*8, LWORK=ngX2*2 !dimA=ngX2
 
     real(DD) :: dkX, kX, kXmin, kXmax, X
     real(DD) :: gX(ngX)
-    real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R, mub
-    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mu, f, tor, filling, bunbo
+    real(DD),dimension(1:2) :: rho11, rho12, rho22, P, Q, R
+    real(DD) :: rhoS, rhoF, Ks, Kf, Kb, mub, f, tor, filling, bunbo
     real(DD) :: rhoSp, rhoFp, Ksp, Kfp, Kbp, musp, mubp, fp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
-    real(DD) :: lX, pi, pi2, RWORK(ngX2*8)
+    real(DD) :: lX, pi, pi2, RWORK(ngX8)
     !--多孔質体(シリカ)の波の伝搬速度
     real(DD), parameter :: csl=5.970d3, cst=3.760d3
 
     complex :: coeff
-    complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
+    complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g
     complex(DD),dimension(1:ngX2, 1:ngX2) :: A, B, VL, VR
     complex(DD) :: eigen(ngX2), ALPHA(ngX2), BETA(ngX2), WORK(LWORK)
     complex(DD), parameter :: COM=dcmplx(0.0d0,1.0d0)
@@ -104,7 +103,7 @@ write(nr,'(I3.3)') i
       Ks = Ksp
       Kf = Kfp
       Kb = Kbp
-      mu = mubp
+      mub = mubp
       material = "poro"
       tor=f**(-2.0d0/3.0d0)                     ! 迷路度
   !--基盤中では
@@ -115,7 +114,7 @@ write(nr,'(I3.3)') i
       Ks = Ksh
       Kf = Kfh
       Kb = Kbh
-      mu = mubh
+      mub = mubh
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -128,12 +127,12 @@ write(nr,'(I3.3)') i
       end if
 !********************************************************************
     end if
-    mub(iter) = mu
+    !--縦波のみ考えるので{mub}はPの内部のみ現れる．
     rho11(iter) = (1.0d0-f)*rhoS + (tor-1.0d0)*f*rhoF
     rho12(iter) = -(tor-1.0d0)*f*rhoF
     rho22(iter) = tor*f*rhoF
     bunbo=1.0d0-f-Kb/Ks + f*Ks/Kf
-    P(iter) = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mu/3.0d0
+    P(iter) = Ks*( (1.0d0-f)*(1.0d0-f-Kb/Ks) + f*Kb/Kf )/bunbo + 4.0d0*mub/3.0d0
     Q(iter) = f*Ks*(1.0d0-f-Kb/Ks)/bunbo
     R(iter) = (f**2 *Ks)/bunbo
     write(25,*) material
@@ -142,7 +141,7 @@ write(nr,'(I3.3)') i
     write(25,*) 'Ks =', Ks
     write(25,*) 'Kf =', Kf
     write(25,*) 'Kb =', Kb
-    write(25,*) 'mub =', mu
+    write(25,*) 'mub =', mub
     write(25,*) 'f =', f
     write(25,*) 'tor =',tor
   end do
@@ -174,7 +173,7 @@ write(nr,'(I3.3)') i
        rho11g(l,k) = coeff(gX(l)-gX(k), rho11(1), rho11(2), lx, filling)
        rho12g(l,k) = coeff(gX(l)-gX(k), rho12(1), rho12(2), lx, filling)
        rho22g(l,k) = coeff(gX(l)-gX(k), rho22(1), rho22(2), lx, filling)
-       mubg(l,k)   = coeff(gX(l)-gX(k),   mub(1),   mub(2), lX, filling)
+      !--縦波のモードのみを考えるので{mub}はマトリクスに含まれない．
     end do
     end do
   do iter = 0, NE
@@ -197,8 +196,8 @@ write(nr,'(I3.3)') i
     eigen = sqrt(ALPHA/BETA)*lX/csl
     X=kX*lX/pi
     call DEIGSRT(eigen,VR,ngX2,ngX2)
-    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
+    write(10,'(500(e24.10e3,2x),i5)') X, dble(eigen)
+    write(20,'(500(e24.10e3,2x),i5)') X, imag(eigen)
     ! write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
 
@@ -208,7 +207,7 @@ write(nr,'(I3.3)') i
 !===
 end do
 
-end program Phononic1D_noY
+end program Phononic1D
 !********************************************************************
 !********************************************************************
 !********************************************************************
@@ -218,19 +217,19 @@ end program Phononic1D_noY
 ! | フーリエ係数の作成　　　　　　　 |
 ! +-------------------------------+
 !===
-function coeff(gX, ap, ag, a, f)
+function coeff(gX, ap, ag, lx, f)
   implicit none
     integer :: k
     integer,parameter::DD=kind(0d0)
 
     real(DD) :: ap, ag
     real(DD) :: gX
-    real(DD) :: a, pi, pi2, f, dA, ph
+    real(DD) :: lX, pi, pi2, f, dA, ph
 
     complex :: coeff
     complex(DD), parameter :: ai=dcmplx(0.0d0,1.0d0)
 
-    dA=f*a    ! A層の厚さ、lXは周期長、fは充填率
+    dA=f*lX    ! A層の厚さ、lXは周期長、fは充填率
     ph=0.5d0*gX*dA
 
   !--{a_G} = -i * {ap-ag}/{G*Lx} * (exp[-iG/2Lx] - 1) : G/=0

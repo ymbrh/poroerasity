@@ -200,12 +200,12 @@ write(nr,'(I3.3)') i
       A(l+ngX ,k+ngX2) = Qg(l,k)*(kX+gX(k))*(kY)
       A(l+ngX ,k+ngX3) = Qg(l,k)*(kY)*(kY)
 
-      A(l+ngX2,k     ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
+      A(l+ngX2,k    ) = Qg(l,k)*(kX+gX(k))*(kX+gX(l))
       A(l+ngX2,k+ngX ) = Qg(l,k)*(kY)*(kX+gX(l))
       A(l+ngX2,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kX+gX(l))
       A(l+ngX2,k+ngX3) = Rg(l,k)*(kY)*(kX+gX(l))
 
-      A(l+ngX3,k     ) = Qg(l,k)*(kX+gX(k))*(kY)
+      A(l+ngX3,k    ) = Qg(l,k)*(kX+gX(k))*(kY)
       A(l+ngX3,k+ngX ) = Qg(l,k)*(kY)*(kY)
       A(l+ngX3,k+ngX2) = Rg(l,k)*(kX+gX(k))*(kY)
       A(l+ngX3,k+ngX3) = Rg(l,k)*(kY)*(kY)
