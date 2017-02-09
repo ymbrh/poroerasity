@@ -78,14 +78,14 @@ write(nr,'(I3.3)') i
   !--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
     kXmax = pi/lX
-    dkX = (kXmax - kXmin) / NE
+    dkX = ((kXmax - kXmin) / NE)*lX/pi
 
   !--{逆格子点の数} = 2*{正方向の要素数}+{原点}
   !--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
     iter=0
     do iX = -nX, nX
      iter = iter+1
-     gX(iter) = (pi2/lX)*dble(iX)
+     gX(iter) = ((pi2/lX)*dble(iX))*lX/pi
     end do
 !===
 
@@ -99,23 +99,23 @@ write(nr,'(I3.3)') i
   !--多孔質体中では
     if ( iter .eq. 1 ) then
       f = fp
-      rhoS = rhoSp
-      rhoF = rhoFp
-      Ks = Ksp
-      Kf = Kfp
-      Kb = Kbp
-      mu = mubp
+      rhoS = rhoSp/rhoSp
+      rhoF = rhoFp/rhoSp
+      Ks = Ksp/Ksp
+      Kf = Kfp/Ksp
+      Kb = Kbp/Ksp
+      mu = mubp/Ksp
       material = "poro"
       tor=f**(-2.0d0/3.0d0)                     ! 迷路度
   !--基盤中では
     else
       f = fh
-      rhoS = rhoSh
-      rhoF = rhoFh
-      Ks = Ksh
-      Kf = Kfh
-      Kb = Kbh
-      mu = mubh
+      rhoS = rhoSh/rhoSp
+      rhoF = rhoFh/rhoSp
+      Ks = Ksh/Ksp
+      Kf = Kfh/Ksp
+      Kb = Kbh/Ksp
+      mu = mubh/Ksp
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -194,11 +194,10 @@ write(nr,'(I3.3)') i
 
     call ZGGEV('N', 'V', ngX2, A, ngX2, B, ngX2, ALPHA, BETA, VL, ngX2, VR, ngX2,&
       & WORK, LWORK, RWORK, INFO)
-    eigen = sqrt(ALPHA/BETA)*lX/csl
-    X=kX*lX/pi
+    eigen = sqrt(ALPHA/BETA)
     call DEIGSRT(eigen,VR,ngX2,ngX2)
-    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
     ! write(26,'(500(e24.10e3,2x),i5)') X, dble(VR)
   end do
 

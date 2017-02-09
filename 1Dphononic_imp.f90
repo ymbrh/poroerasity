@@ -77,17 +77,17 @@ write(nr,'(I3.3)') i
   !--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
     kXmax = pi/lX
-    dkX = (kXmax - kXmin) / NE
+    dkX = ((kXmax - kXmin) / NE)*lX/pi
     lY = lX
     kYmin = 0.0d0
     kYmax = pi/lY
-    dkY = (kYmax - kYmin) / NE
+    dkY = ((kYmax - kYmin) / NE)*lY/pi
 
   !--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
     iter=0
     do iX = -nX, nX
      iter = iter+1
-     gX(iter) = (pi2/lX)*dble(iX)
+     gX(iter) = ((pi2/lX)*dble(iX))*lX/pi
     end do
 !===
 
@@ -101,23 +101,23 @@ write(nr,'(I3.3)') i
   !--多孔質体中では
     if ( iter .eq. 1 ) then
       f = fp
-      rhoS = rhoSp
-      rhoF = rhoFp
-      Ks = Ksp
-      Kf = Kfp
-      Kb = Kbp
-      mu = mubp
+      rhoS = rhoSp/rhoSp
+      rhoF = rhoFp/rhoSp
+      Ks = Ksp/Ksp
+      Kf = Kfp/Ksp
+      Kb = Kbp/Ksp
+      mu = mubp/Ksp
       material = "poro"
       tor=f**(-2.0d0/3.0d0)           ! 迷路度
   !--基盤中では
     else
       f = fh
-      rhoS = rhoSh
-      rhoF = rhoFh
-      Ks = Ksh
-      Kf = Kfh
-      Kb = Kbh
-      mu = mubh
+      rhoS = rhoSh/rhoSp
+      rhoF = rhoFh/rhoSp
+      Ks = Ksh/Ksp
+      Kf = Kfh/Ksp
+      Kb = Kbh/Ksp
+      mu = mubh/Ksp
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -233,15 +233,14 @@ write(nr,'(I3.3)') i
      end do
     call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
       & WORK, LWORK, RWORK, INFO)
-    eigen = SQRT(ALPHA/BETA)*lX/csl
-    X=kX*lX/pi
+    eigen = SQRT(ALPHA/BETA)
     call DEIGSRT(eigen,VR,ngX4,ngX4)
-    write(10,'(1500(e24.10e3,2x),i5)') X, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') X, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') kX, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') kX, imag(eigen)
    end do
 
   ! !--kX=MAXとし，y方向の波数を増やす（X-M）
-    kX = kXmax
+    kX = kXmax*lX/pi
     do iter = 0, NE-1
      kY = dkY*dble(iter)
       do l=1,ngX
@@ -293,12 +292,10 @@ write(nr,'(I3.3)') i
       end do
       call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
        & WORK, LWORK, RWORK, INFO)
-    eigen = SQRT(ALPHA/BETA)*lX/csl
-    X=kXmax*lX/pi
-    Y=kY*lY/pi
+    eigen = SQRT(ALPHA/BETA)
     call DEIGSRT(eigen,VR,ngX4,ngX4)
-    write(10,'(1500(e24.10e3,2x),i5)') X+Y, dble(eigen)
-    write(20,'(1500(e24.10e3,2x),i5)') X+Y, imag(eigen)
+    write(10,'(1500(e24.10e3,2x),i5)') kX+kY, dble(eigen)
+    write(20,'(1500(e24.10e3,2x),i5)') kX+kY, imag(eigen)
     end do
 
   ! !--kX=Max,kY=Maxから，原点方向に戻る（M-Γ）
@@ -354,12 +351,10 @@ write(nr,'(I3.3)') i
     end do
     call ZGGEV('N', 'V', ngX4, A, ngX4, B, ngX4, ALPHA, BETA, VL, ngX4, VR, ngX4,&
      & WORK, LWORK, RWORK, INFO)
-  eigen = SQRT(ALPHA/BETA)*lX/csl
-  X=kXmax*lX/pi
-  Y=kY*lY/pi
+  eigen = SQRT(ALPHA/BETA)
   call DEIGSRT(eigen,VR,ngX4,ngX4)
-  write(10,'(1500(e24.10e3,2x),i5)') X+Y, dble(eigen)
-  write(20,'(1500(e24.10e3,2x),i5)') X+Y, imag(eigen)
+  write(10,'(1500(e24.10e3,2x),i5)') kX+kY, dble(eigen)
+  write(20,'(1500(e24.10e3,2x),i5)') kX+kY, imag(eigen)
   end do
 
   close(10)
