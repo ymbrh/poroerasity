@@ -29,7 +29,7 @@ program Phononic1D_noY
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
     real(DD) :: lX, pi, pi2, RWORK(ngX2*8)
     !--多孔質体(シリカ)の波の伝搬速度
-    real(DD), parameter :: csl=5.970d3, cst=3.760d3
+    real(DD), parameter :: csl=5.970d3, cst=3.760d3, crhos=2.2d3, cks=36.94d9
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
@@ -77,15 +77,15 @@ write(nr,'(I3.3)') i
   !--{第一ブリルアンゾーンの境界} = {逆格子ベクトルの辺垂直二等分線}
   !--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
-    kXmax = pi/lX
-    dkX = ((kXmax - kXmin) / NE)*lX/pi
+    kXmax = 1.0d0
+    dkX = (kXmax - kXmin) / NE
 
   !--{逆格子点の数} = 2*{正方向の要素数}+{原点}
   !--{位相空間のベクトルGi(r)}= 2*{pi}/{辺長Li} * r
     iter=0
     do iX = -nX, nX
      iter = iter+1
-     gX(iter) = ((pi2/lX)*dble(iX))*lX/pi
+     gX(iter) = 2.0d0*dble(iX))
     end do
 !===
 
@@ -94,28 +94,28 @@ write(nr,'(I3.3)') i
 ! | 多孔質体中の物理パラメータを定める  　　　　　 |
 ! +--------------------------------------------+
 !===
-  open (25, file='elastic1D_'//nr//'.dat', status='unknown')
+  open (25, file='elastic1DnoY_'//nr//'.dat', status='unknown')
   do iter = 1,2
   !--多孔質体中では
     if ( iter .eq. 1 ) then
       f = fp
-      rhoS = rhoSp/rhoSp
-      rhoF = rhoFp/rhoSp
-      Ks = Ksp/Ksp
-      Kf = Kfp/Ksp
-      Kb = Kbp/Ksp
-      mu = mubp/Ksp
+      rhoS = rhoSp/crhos
+      rhoF = rhoFp/crhos
+      Ks = Ksp/cks
+      Kf = Kfp/cks
+      Kb = Kbp/cks
+      mu = mubp/cks
       material = "poro"
       tor=f**(-2.0d0/3.0d0)                     ! 迷路度
   !--基盤中では
     else
       f = fh
-      rhoS = rhoSh/rhoSp
-      rhoF = rhoFh/rhoSp
-      Ks = Ksh/Ksp
-      Kf = Kfh/Ksp
-      Kb = Kbh/Ksp
-      mu = mubh/Ksp
+      rhoS = rhoSh/crhos
+      rhoF = rhoFh/crhos
+      Ks = Ksh/cks
+      Kf = Kfh/cks
+      Kb = Kbh/cks
+      mu = mubh/cks
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -163,8 +163,8 @@ write(nr,'(I3.3)') i
 ! +---------------------------------------------+
 !===
   !--y=0とし，x方向の波数を増やす．
-  open(10,file='1D_Re_'//nr//'.dat')
-  open(20,file='1D_Im_'//nr//'.dat')
+  open(10,file='1DnoY_Re_'//nr//'.dat')
+  open(20,file='1DnoY_Im_'//nr//'.dat')
   ! open(26,file='1D_EV_'//nr//'.dat')
     do l=1,ngX
     do k=1,ngX

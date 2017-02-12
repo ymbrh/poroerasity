@@ -10,7 +10,7 @@
 !   LAPACKで固有値，固有ベクトルを出す
 !   与えた波数に対応した固有値，固有ベクトルを出力
 !
-program poroerastic1D_imp
+program poroerastic1D_2D
     implicit none
     character :: material*4, nr*3
     integer :: iX, iY, l, k, iter, INFO, i
@@ -29,7 +29,7 @@ program poroerastic1D_imp
     real(DD) :: rhoSh, rhoFh, Ksh, Kfh, Kbh, mush, mubh, fh
     real(DD) :: lX, lY, pi, pi2, RWORK(ngX4*8)
     !--多孔質体(シリカ)の波の伝搬速度
-    real(DD), parameter :: csl=5.970d3, cst=3.760d3
+    real(DD), parameter :: csl=5.970d3, cst=3.760d3, crhos=2.2d3, cks=36.94d9
 
     complex :: coeff
     complex(DD),dimension(1:ngX, 1:ngX) :: Pg, Qg, Rg, rho11g, rho12g, rho22g, mubg
@@ -76,18 +76,18 @@ write(nr,'(I3.3)') i
   !--{第一ブリルアンゾーンの境界} = {逆格子ベクトルの辺垂直二等分線}
   !--{刻み幅} = {格子の辺長}/{刻み数}
     kXmin = 0.0d0
-    kXmax = pi/lX
-    dkX = ((kXmax - kXmin) / NE)*lX/pi
+    kXmax = 1.0d0
+    dkX = (kXmax - kXmin) / NE
     lY = lX
     kYmin = 0.0d0
-    kYmax = pi/lY
-    dkY = ((kYmax - kYmin) / NE)*lY/pi
+    kYmax = 1.0d0
+    dkY = (kYmax - kYmin) / NE
 
   !--{位相空間のベクトルGi(ITER)}= 2*{pi}/{辺長Li} * ITER
     iter=0
     do iX = -nX, nX
      iter = iter+1
-     gX(iter) = ((pi2/lX)*dble(iX))*lX/pi
+     gX(iter) = 2.0d0*dble(iX))
     end do
 !===
 
@@ -101,23 +101,23 @@ write(nr,'(I3.3)') i
   !--多孔質体中では
     if ( iter .eq. 1 ) then
       f = fp
-      rhoS = rhoSp/rhoSp
-      rhoF = rhoFp/rhoSp
-      Ks = Ksp/Ksp
-      Kf = Kfp/Ksp
-      Kb = Kbp/Ksp
-      mu = mubp/Ksp
+      rhoS = rhoSp/crhos
+      rhoF = rhoFp/crhos
+      Ks = Ksp/cks
+      Kf = Kfp/cks
+      Kb = Kbp/cks
+      mu = mubp/cks
       material = "poro"
       tor=f**(-2.0d0/3.0d0)           ! 迷路度
   !--基盤中では
     else
       f = fh
-      rhoS = rhoSh/rhoSp
-      rhoF = rhoFh/rhoSp
-      Ks = Ksh/Ksp
-      Kf = Kfh/Ksp
-      Kb = Kbh/Ksp
-      mu = mubh/Ksp
+      rhoS = rhoSh/crhos
+      rhoF = rhoFh/crhos
+      Ks = Ksh/cks
+      Kf = Kfh/cks
+      Kb = Kbh/cks
+      mu = mubh/cks
       material = "host"
 !********************************************************************
     !--{tor}={f^-2/3}の定義より，ホスト基盤が
@@ -362,7 +362,7 @@ write(nr,'(I3.3)') i
 !===
 end do
 
-end program poroerastic1D_imp
+end program poroerastic1D_2D
 
 !********************************************************************
 !********************************************************************
